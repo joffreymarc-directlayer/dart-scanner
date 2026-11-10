@@ -1,0 +1,9 @@
+.build/
+.swiftpm/
+build/
+DerivedData/
+*.xcodeproj
+App/Info.plist
+Config/Local.xcconfig
+.DS_Store
+xcuserdata/

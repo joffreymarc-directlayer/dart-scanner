@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Corriger une fléchette détectée</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 60px 20px 34px; display: flex; flex-direction: column; gap: 14px; background: #0E1114; color: #F3F1EA; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif; overflow: hidden">
+<header style="display: flex; align-items: center; gap: 8px; height: 44px">
+<button type="button" aria-label="Fermer" style="width: 44px; height: 44px; margin-left: -10px; border: none; background: transparent; color: #F3F1EA; display: flex; align-items: center; justify-content: center; padding: 0">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+</button>
+<h1 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 800; letter-spacing: -0.3px">Corriger la 2e fléchette</h1>
+</header>
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="padding: 3px 9px; border-radius: 9px; border: 1.5px solid #FFA630; color: #FFA630; font-size: 13px; line-height: 17px; font-weight: 700">À vérifier</span>
+<span style="font-size: 14px; line-height: 19px; color: #A9B1BA">Détectée en T19, pointe en partie cachée</span>
+</div>
+<div style="position: relative; width: 350px; height: 280px; flex: none; overflow: hidden; border-radius: 16px; border: 1px solid #2E3640; background: #0A0C0E">
+<div aria-hidden="true" style="position: absolute; left: -211px; top: -507px; width: 900px; height: 900px">
+<div style="position: absolute; inset: 0; border-radius: 50%; background: #0A0C0E"></div>
+<div style="position: absolute; inset: 11.5%; border-radius: 50%; background: repeating-conic-gradient(from -9deg, #D8413A 0deg 18deg, #2F9E5B 18deg 36deg)"></div>
+<div style="position: absolute; inset: 14.5%; border-radius: 50%; background: repeating-conic-gradient(from -9deg, #1B1F23 0deg 18deg, #E9DFC7 18deg 36deg)"></div>
+<div style="position: absolute; inset: 25.5%; border-radius: 50%; background: repeating-conic-gradient(from -9deg, #D8413A 0deg 18deg, #2F9E5B 18deg 36deg)"></div>
+<div style="position: absolute; inset: 28.5%; border-radius: 50%; background: repeating-conic-gradient(from -9deg, #1B1F23 0deg 18deg, #E9DFC7 18deg 36deg)"></div>
+<div style="position: absolute; inset: 45.5%; border-radius: 50%; background: #2F9E5B"></div>
+<div style="position: absolute; inset: 48%; border-radius: 50%; background: #D8413A"></div>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 174px; top: 96px; width: 2px; height: 88px; background: rgba(243, 241, 234, 0.7)"></div>
+<div aria-hidden="true" style="position: absolute; left: 131px; top: 139px; width: 88px; height: 2px; background: rgba(243, 241, 234, 0.7)"></div>
+<div aria-hidden="true" style="position: absolute; left: 157px; top: 122px; width: 36px; height: 36px; box-sizing: border-box; border-radius: 50%; border: 3px solid #FFA630; background: rgba(14, 17, 20, 0.25)"></div>
+<div aria-hidden="true" style="position: absolute; left: 171px; top: 136px; width: 8px; height: 8px; border-radius: 50%; background: #FFA630"></div>
+<div style="position: absolute; left: 49px; top: 174px; width: 28px; height: 24px; border-radius: 8px; background: rgba(14, 17, 20, 0.85); font-size: 14px; line-height: 24px; font-weight: 700; text-align: center">7</div>
+<div style="position: absolute; left: 130px; top: 240px; width: 32px; height: 24px; border-radius: 8px; background: rgba(14, 17, 20, 0.85); font-size: 14px; line-height: 24px; font-weight: 700; text-align: center">19</div>
+<div style="position: absolute; left: 226px; top: 244px; width: 28px; height: 24px; border-radius: 8px; background: rgba(14, 17, 20, 0.85); font-size: 14px; line-height: 24px; font-weight: 700; text-align: center">3</div>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 18px; color: #A9B1BA">Touchez l'image pour déplacer la pointe, ou choisissez une case.</p>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<button type="button" aria-pressed="true" style="height: 44px; border: none; border-radius: 12px; background: #F3F1EA; color: #0E1114; font: inherit; font-size: 16px; font-weight: 800">T19</button>
+<button type="button" aria-pressed="false" style="height: 44px; border: 1px solid #2E3640; border-radius: 12px; background: #171C21; color: #F3F1EA; font: inherit; font-size: 16px; font-weight: 600">S19</button>
+<button type="button" aria-pressed="false" style="height: 44px; border: 1px solid #2E3640; border-radius: 12px; background: #171C21; color: #F3F1EA; font: inherit; font-size: 16px; font-weight: 600">T7</button>
+<button type="button" aria-pressed="false" style="height: 44px; border: 1px solid #2E3640; border-radius: 12px; background: #171C21; color: #F3F1EA; font: inherit; font-size: 16px; font-weight: 600">T3</button>
+<button type="button" aria-pressed="false" style="height: 44px; border: 1px solid #2E3640; border-radius: 12px; background: #171C21; color: #F3F1EA; font: inherit; font-size: 16px; font-weight: 600">S7</button>
+<button type="button" aria-pressed="false" style="height: 44px; border: 1px solid #2E3640; border-radius: 12px; background: #171C21; color: #F3F1EA; font: inherit; font-size: 16px; font-weight: 600">S3</button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<button type="button" style="height: 48px; border: 1px solid #2E3640; border-radius: 14px; background: transparent; color: #F3F1EA; font: inherit; font-size: 15px; font-weight: 600">Hors cible</button>
+<button type="button" style="height: 48px; border: 1px solid #2E3640; border-radius: 14px; background: transparent; color: #F3F1EA; font: inherit; font-size: 15px; font-weight: 600">Retirer la fléchette</button>
+</div>
+<button type="button" style="height: 52px; margin-top: auto; border: none; border-radius: 16px; background: #FFA630; color: #1A1206; font: inherit; font-size: 17px; font-weight: 700">Valider T19</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

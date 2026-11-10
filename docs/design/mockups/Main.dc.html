@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Accueil : choix du jeu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 60px 20px 34px; display: flex; flex-direction: column; gap: 16px; background: #0E1114; color: #F3F1EA; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif; overflow: hidden">
+<header style="display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 44px">
+<h1 style="margin: 0; font-size: 30px; line-height: 36px; font-weight: 800; letter-spacing: -0.5px">Dart Scanner</h1>
+<button type="button" aria-label="Réglages" style="width: 44px; height: 44px; border: 1px solid #2E3640; border-radius: 22px; background: #171C21; color: #F3F1EA; display: flex; align-items: center; justify-content: center; padding: 0">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg>
+</button>
+</header>
+<section style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 16px; background: #171C21; border: 1px solid #2E3640">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 44px">
+<div style="width: 40px; height: 40px; border-radius: 20px; background: #212830; color: #5CB2FF; display: flex; align-items: center; justify-content: center; flex: none">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+<div style="font-size: 15px; line-height: 20px; font-weight: 700">Cible calibrée</div>
+<div style="font-size: 13px; line-height: 17px; color: #A9B1BA">Le scan en direct est prêt</div>
+</div>
+<button type="button" style="min-height: 44px; padding: 0 4px; border: none; background: transparent; color: #FFA630; font: inherit; font-size: 15px; font-weight: 600">Recalibrer</button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 12px; background: #0E1114">
+<button type="button" aria-pressed="true" style="height: 44px; border: none; border-radius: 9px; background: #F3F1EA; color: #0E1114; font: inherit; font-size: 15px; font-weight: 700">Scan caméra</button>
+<button type="button" aria-pressed="false" style="height: 44px; border: none; border-radius: 9px; background: transparent; color: #A9B1BA; font: inherit; font-size: 15px; font-weight: 600">Saisie manuelle</button>
+</div>
+</section>
+<h2 style="margin: 0; font-size: 15px; line-height: 20px; font-weight: 600; color: #A9B1BA">Choisir un jeu</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button type="button" style="min-height: 86px; padding: 12px 14px; border: 1px solid #2E3640; border-radius: 16px; background: #171C21; color: #F3F1EA; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 17px; line-height: 22px; font-weight: 700">X01</span><span style="font-size: 13px; line-height: 17px; color: #A9B1BA">301 · 501 · 701</span></button>
+<button type="button" style="min-height: 86px; padding: 12px 14px; border: 1px solid #2E3640; border-radius: 16px; background: #171C21; color: #F3F1EA; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 17px; line-height: 22px; font-weight: 700">Cricket</span><span style="font-size: 13px; line-height: 17px; color: #A9B1BA">Fermer 15 à 20 et le bull</span></button>
+<button type="button" style="min-height: 86px; padding: 11px 13px; border: 2px solid #FFA630; border-radius: 16px; background: #171C21; color: #F3F1EA; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 17px; line-height: 22px; font-weight: 700">Killer</span><span style="font-size: 13px; line-height: 17px; color: #A9B1BA">4 niveaux · 2 à 8 joueurs</span></button>
+<button type="button" style="min-height: 86px; padding: 12px 14px; border: 1px solid #2E3640; border-radius: 16px; background: #171C21; color: #F3F1EA; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 17px; line-height: 22px; font-weight: 700">Shanghai</span><span style="font-size: 13px; line-height: 17px; color: #A9B1BA">Un numéro par manche</span></button>
+<button type="button" style="min-height: 86px; padding: 12px 14px; border: 1px solid #2E3640; border-radius: 16px; background: #171C21; color: #F3F1EA; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 17px; line-height: 22px; font-weight: 700">Horloge</span><span style="font-size: 13px; line-height: 17px; color: #A9B1BA">De 1 à 20 dans l'ordre</span></button>
+<button type="button" style="min-height: 86px; padding: 12px 14px; border: 1px solid #2E3640; border-radius: 16px; background: #171C21; color: #F3F1EA; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 17px; line-height: 22px; font-weight: 700">Meilleur score</span><span style="font-size: 13px; line-height: 17px; color: #A9B1BA">Le plus de points</span></button>
+<button type="button" style="min-height: 86px; padding: 12px 14px; border: 1px solid #2E3640; border-radius: 16px; background: #171C21; color: #F3F1EA; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 17px; line-height: 22px; font-weight: 700">La Moitié</span><span style="font-size: 13px; line-height: 17px; color: #A9B1BA">Raté : score divisé par 2</span></button>
+<button type="button" style="min-height: 86px; padding: 12px 14px; border: 1px solid #2E3640; border-radius: 16px; background: #171C21; color: #F3F1EA; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 17px; line-height: 22px; font-weight: 700">Alunissage</span><span style="font-size: 13px; line-height: 17px; color: #A9B1BA">De 200 à zéro</span></button>
+<button type="button" style="min-height: 86px; padding: 12px 14px; border: 1px solid #2E3640; border-radius: 16px; background: #171C21; color: #F3F1EA; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 17px; line-height: 22px; font-weight: 700">Combat</span><span style="font-size: 13px; line-height: 17px; color: #A9B1BA">9 vies, blesser ou soigner</span></button>
+<button type="button" style="min-height: 86px; padding: 12px 14px; border: 1px solid #2E3640; border-radius: 16px; background: #171C21; color: #F3F1EA; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 17px; line-height: 22px; font-weight: 700">Conquérant</span><span style="font-size: 13px; line-height: 17px; color: #A9B1BA">Conquérir la cible</span></button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

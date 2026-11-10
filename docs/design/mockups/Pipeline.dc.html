@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>De l'image au score : la détection des fléchettes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1280px; height: 700px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 20px; background: #0E1114; color: #F3F1EA; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 36px; line-height: 44px; font-weight: 800; letter-spacing: -0.6px">De l'image au score</h1>
+<p style="margin: 0; font-size: 17px; line-height: 24px; color: #A9B1BA">L'appareil reste immobile sur son support, à environ 1 m de la cible. Chaque fléchette est trouvée en comparant l'image à celle d'avant.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 13px; line-height: 18px; font-weight: 600; color: #A9B1BA">Pour chaque fléchette</div>
+<div style="display: flex; align-items: stretch; gap: 6px">
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; background: #171C21; border: 1px solid #2E3640"><span style="font-size: 13px; font-weight: 800; color: #FFA630">1</span><span style="font-size: 17px; line-height: 22px; font-weight: 700">Calibrage</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">4 repères posés sur la cible, puis affinage automatique sur les anneaux. Un pixel se convertit en millimètres.</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A939D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; align-self: center"><path d="M9 5l7 7-7 7"></path></svg>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; background: #171C21; border: 1px solid #2E3640"><span style="font-size: 13px; font-weight: 800; color: #FFA630">2</span><span style="font-size: 17px; line-height: 22px; font-weight: 700">Référence</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">Image de la cible au repos. Mise au point, exposition et couleurs sont verrouillées.</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A939D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; align-self: center"><path d="M9 5l7 7-7 7"></path></svg>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; background: #171C21; border: 1px solid #2E3640"><span style="font-size: 13px; font-weight: 800; color: #FFA630">3</span><span style="font-size: 17px; line-height: 22px; font-weight: 700">Stabilisation</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">Un mouvement bref, puis 0,2 s de calme : une fléchette vient de se planter.</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A939D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; align-self: center"><path d="M9 5l7 7-7 7"></path></svg>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; background: #171C21; border: 1px solid #2E3640"><span style="font-size: 13px; font-weight: 800; color: #FFA630">4</span><span style="font-size: 17px; line-height: 22px; font-weight: 700">Différence</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">Image actuelle moins référence : il ne reste que la silhouette de la nouvelle fléchette.</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A939D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; align-self: center"><path d="M9 5l7 7-7 7"></path></svg>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; background: #171C21; border: 1px solid #2E3640"><span style="font-size: 13px; font-weight: 800; color: #FFA630">5</span><span style="font-size: 17px; line-height: 22px; font-weight: 700">Pointe</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">On suit l'axe de la silhouette. La pointe est son extrémité fine, celle qui touche la cible.</span></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A939D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; align-self: center"><path d="M9 5l7 7-7 7"></path></svg>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; background: #171C21; border: 2px solid #FFA630"><span style="font-size: 13px; font-weight: 800; color: #FFA630">6</span><span style="font-size: 17px; line-height: 22px; font-weight: 700">Score</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">La pointe est reportée sur la cible : secteur, anneau, et un niveau de confiance.</span></div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 13px; line-height: 18px; font-weight: 600; color: #A9B1BA">Pendant une volée</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<span style="padding: 8px 14px; border-radius: 12px; background: #171C21; border: 1px solid #2E3640; font-size: 15px; line-height: 20px; font-weight: 600">En attente</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A939D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+<span style="padding: 8px 14px; border-radius: 12px; background: #171C21; border: 1px solid #2E3640; font-size: 15px; line-height: 20px; font-weight: 600">Mouvement</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A939D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+<span style="padding: 8px 14px; border-radius: 12px; background: #171C21; border: 1px solid #2E3640; font-size: 15px; line-height: 20px; font-weight: 600">Fléchette lue, jusqu'à 3 fois</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A939D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+<span style="padding: 8px 14px; border-radius: 12px; background: #171C21; border: 1px solid #2E3640; font-size: 15px; line-height: 20px; font-weight: 600">Volée complète</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A939D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+<span style="padding: 8px 14px; border-radius: 12px; background: #171C21; border: 1px solid #2E3640; font-size: 15px; line-height: 20px; font-weight: 600">Main détectée : fléchettes retirées</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A939D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+<span style="padding: 8px 14px; border-radius: 12px; background: #171C21; border: 1px solid #2E3640; font-size: 15px; line-height: 20px; font-weight: 600">Nouvelle référence, joueur suivant</span>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+<section style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 16px; background: #171C21; border: 1px solid #2E3640">
+<h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 700">Trois niveaux de confiance</h2>
+<div style="font-size: 14px; line-height: 20px"><b>Haute.</b> <span style="color: #A9B1BA">Le score est validé et annoncé.</span></div>
+<div style="font-size: 14px; line-height: 20px"><b style="color: #FFA630">Moyenne.</b> <span style="color: #A9B1BA">Le score est compté mais marqué « à vérifier ».</span></div>
+<div style="font-size: 14px; line-height: 20px"><b>Basse.</b> <span style="color: #A9B1BA">L'app propose les cases possibles et attend un tap.</span></div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 16px; background: #171C21; border: 1px solid #2E3640">
+<h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 700">Quand ça se passe mal</h2>
+<div style="font-size: 14px; line-height: 20px"><b>Support bousculé.</b> <span style="color: #A9B1BA">Recalage automatique, sinon retour au calibrage.</span></div>
+<div style="font-size: 14px; line-height: 20px"><b>Lumière qui change.</b> <span style="color: #A9B1BA">Une nouvelle référence est prise.</span></div>
+<div style="font-size: 14px; line-height: 20px"><b>Fléchette manquée ou fausse.</b> <span style="color: #A9B1BA">Ajout ou correction d'un tap.</span></div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 16px; background: #171C21; border: 1px solid #5A6470">
+<h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 700">Limites connues</h2>
+<div style="font-size: 14px; line-height: 20px; color: #A9B1BA">Validé ici sur des images de synthèse seulement : la précision sur une vraie cible reste à mesurer et à régler.</div>
+<div style="font-size: 14px; line-height: 20px; color: #A9B1BA">Cas difficiles : fléchettes groupées, pointe cachée, ombres dures. Un rebond hors cible est invisible pour la caméra.</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":700}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

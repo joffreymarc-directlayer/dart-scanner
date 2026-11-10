@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Organisation du code et du son</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1040px; height: 700px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 20px; background: #0E1114; color: #F3F1EA; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 36px; line-height: 44px; font-weight: 800; letter-spacing: -0.6px">Organisation du code</h1>
+<p style="margin: 0; font-size: 17px; line-height: 24px; color: #A9B1BA">Une coquille iOS très fine au-dessus d'un package Swift en cinq modules, sans dépendance externe.</p>
+</div>
+<div style="display: flex; gap: 32px">
+<div style="width: 548px; flex: none; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: 14px; border: 1px dashed #5A6470"><span style="font-size: 16px; line-height: 21px; font-weight: 700">App iOS</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">Point d'entrée, icône, autorisation caméra. Universelle : iPhone et iPad.</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: 14px; background: #171C21; border: 1px solid #2E3640"><span style="font-size: 16px; line-height: 21px; font-weight: 700">DartUI</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">Tous les écrans SwiftUI et leur logique, mise en page adaptée à chaque appareil.</span></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: #171C21; border: 1px solid #2E3640"><span style="font-size: 16px; line-height: 21px; font-weight: 700">DartGames</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">Les moteurs de règles des quatorze jeux.</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: #171C21; border: 1px solid #2E3640"><span style="font-size: 16px; line-height: 21px; font-weight: 700">DartVision</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">Calibrage et détection des fléchettes.</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: #171C21; border: 1px solid #2E3640"><span style="font-size: 16px; line-height: 21px; font-weight: 700">DartAudio</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">Effets, voix et vibrations.</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: 14px; background: #171C21; border: 2px solid #FFA630"><span style="font-size: 16px; line-height: 21px; font-weight: 700">DartCore</span><span style="font-size: 13px; line-height: 18px; color: #A9B1BA">Géométrie de la cible, notation des fléchettes, contrat commun à tous les jeux, hasard reproductible.</span></div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding-top: 10px">
+<div style="font-size: 14px; line-height: 20px"><b>Corriger, c'est rejouer.</b> <span style="color: #A9B1BA">Une partie est la liste de ses fléchettes. Annuler ou corriger rejoue cette liste, même après un tirage au sort.</span></div>
+<div style="font-size: 14px; line-height: 20px"><b>Caméra ou doigt.</b> <span style="color: #A9B1BA">Les jeux reçoivent des fléchettes sans savoir d'où elles viennent : détection ou tap sur la cible à l'écran.</span></div>
+<div style="font-size: 14px; line-height: 20px"><b>Testé sans iPhone.</b> <span style="color: #A9B1BA">Tout le package se compile et se teste sur Mac ; le simulateur sert aux écrans.</span></div>
+</div>
+</div>
+<section style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 16px; background: #171C21; border: 1px solid #2E3640; align-self: flex-start">
+<h2 style="margin: 0; font-size: 20px; line-height: 26px; font-weight: 800">Le son suit le jeu</h2>
+<div style="display: flex; flex-direction: column">
+<div style="display: grid; grid-template-columns: 128px 92px minmax(0, 1fr); column-gap: 10px; align-items: center; height: 24px; font-size: 12px; font-weight: 600; color: #A9B1BA"><span>Événement</span><span>Effet</span><span>Voix</span></div>
+<div style="display: grid; grid-template-columns: 128px 92px minmax(0, 1fr); column-gap: 10px; align-items: center; min-height: 42px; border-top: 1px solid #2E3640; font-size: 13px; line-height: 17px"><span style="font-weight: 700">Fléchette comptée</span><span>Impact court</span><span style="color: #A9B1BA">« Triple vingt »</span></div>
+<div style="display: grid; grid-template-columns: 128px 92px minmax(0, 1fr); column-gap: 10px; align-items: center; min-height: 42px; border-top: 1px solid #2E3640; font-size: 13px; line-height: 17px"><span style="font-weight: 700">Volée de 180</span><span>Fanfare</span><span style="color: #A9B1BA">« Cent quatre-vingts »</span></div>
+<div style="display: grid; grid-template-columns: 128px 92px minmax(0, 1fr); column-gap: 10px; align-items: center; min-height: 42px; border-top: 1px solid #2E3640; font-size: 13px; line-height: 17px"><span style="font-weight: 700">Dépassement</span><span>Buzzer</span><span style="color: #A9B1BA">« Dépassé »</span></div>
+<div style="display: grid; grid-template-columns: 128px 92px minmax(0, 1fr); column-gap: 10px; align-items: center; min-height: 42px; border-top: 1px solid #2E3640; font-size: 13px; line-height: 17px"><span style="font-weight: 700">Devenu Killer</span><span>Son d'arme</span><span style="color: #A9B1BA">« Killer ! »</span></div>
+<div style="display: grid; grid-template-columns: 128px 92px minmax(0, 1fr); column-gap: 10px; align-items: center; min-height: 42px; border-top: 1px solid #2E3640; font-size: 13px; line-height: 17px"><span style="font-weight: 700">Vie perdue</span><span>Choc</span><span style="color: #A9B1BA">Le nom du joueur touché</span></div>
+<div style="display: grid; grid-template-columns: 128px 92px minmax(0, 1fr); column-gap: 10px; align-items: center; min-height: 42px; border-top: 1px solid #2E3640; border-bottom: 1px solid #2E3640; font-size: 13px; line-height: 17px"><span style="font-weight: 700">Victoire</span><span>Fanfare longue</span><span style="color: #A9B1BA">Le nom du vainqueur</span></div>
+</div>
+<div style="font-size: 13px; line-height: 18px; color: #A9B1BA">Les effets sont synthétisés par l'app, sans fichier audio. La voix est celle du système, en français ou en anglais.</div>
+<div style="font-size: 13px; line-height: 18px; color: #A9B1BA">iPhone et iPad : le son passe aussi en mode silencieux, réglable. Vibrations sur iPhone seulement.</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1040,"height":700}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

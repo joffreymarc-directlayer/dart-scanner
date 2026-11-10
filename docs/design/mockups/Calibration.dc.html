@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Calibrage de la cible par la caméra</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #0E1114; color: #F3F1EA; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif; overflow: hidden">
+<div style="position: relative; flex: 1; overflow: hidden; background: #4A453E">
+<div aria-hidden="true" style="position: absolute; left: 40px; top: 262px; width: 310px; height: 310px; transform: perspective(900px) rotateY(-26deg) rotateX(5deg)">
+<div style="position: absolute; inset: -30px; border-radius: 14px; background: #2A2622"></div>
+<div style="position: absolute; inset: 0; border-radius: 50%; background: #0A0C0E"></div>
+<div style="position: absolute; inset: 11.5%; border-radius: 50%; background: repeating-conic-gradient(from -9deg, #D8413A 0deg 18deg, #2F9E5B 18deg 36deg)"></div>
+<div style="position: absolute; inset: 14.5%; border-radius: 50%; background: repeating-conic-gradient(from -9deg, #1B1F23 0deg 18deg, #E9DFC7 18deg 36deg)"></div>
+<div style="position: absolute; inset: 25.5%; border-radius: 50%; background: repeating-conic-gradient(from -9deg, #D8413A 0deg 18deg, #2F9E5B 18deg 36deg)"></div>
+<div style="position: absolute; inset: 28.5%; border-radius: 50%; background: repeating-conic-gradient(from -9deg, #1B1F23 0deg 18deg, #E9DFC7 18deg 36deg)"></div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(0deg) translateY(-137px) rotate(0deg)">20</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(18deg) translateY(-137px) rotate(-18deg)">1</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(36deg) translateY(-137px) rotate(-36deg)">18</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(54deg) translateY(-137px) rotate(-54deg)">4</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(72deg) translateY(-137px) rotate(-72deg)">13</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(90deg) translateY(-137px) rotate(-90deg)">6</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(108deg) translateY(-137px) rotate(-108deg)">10</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(126deg) translateY(-137px) rotate(-126deg)">15</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(144deg) translateY(-137px) rotate(-144deg)">2</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(162deg) translateY(-137px) rotate(-162deg)">17</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(180deg) translateY(-137px) rotate(-180deg)">3</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(198deg) translateY(-137px) rotate(-198deg)">19</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(216deg) translateY(-137px) rotate(-216deg)">7</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(234deg) translateY(-137px) rotate(-234deg)">16</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(252deg) translateY(-137px) rotate(-252deg)">8</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(270deg) translateY(-137px) rotate(-270deg)">11</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(288deg) translateY(-137px) rotate(-288deg)">14</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(306deg) translateY(-137px) rotate(-306deg)">9</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(324deg) translateY(-137px) rotate(-324deg)">12</div>
+<div style="position: absolute; left: 50%; top: 50%; width: 28px; height: 16px; margin: -8px 0 0 -14px; text-align: center; font-size: 13px; line-height: 16px; font-weight: 700; color: #E9DFC7; transform: rotate(342deg) translateY(-137px) rotate(-342deg)">5</div>
+<div style="position: absolute; inset: 11.5%; border-radius: 50%; background: repeating-conic-gradient(from -9.5deg, #FFA630 0deg 1deg, transparent 1deg 18deg)"></div>
+<div style="position: absolute; inset: 45.5%; border-radius: 50%; background: #2F9E5B"></div>
+<div style="position: absolute; inset: 48%; border-radius: 50%; background: #D8413A"></div>
+<div style="position: absolute; inset: 11.5%; box-sizing: border-box; border-radius: 50%; border: 2px solid #FFA630"></div>
+<div style="position: absolute; inset: 14.5%; box-sizing: border-box; border-radius: 50%; border: 1.5px solid #FFA630"></div>
+<div style="position: absolute; inset: 25.5%; box-sizing: border-box; border-radius: 50%; border: 1.5px solid #FFA630"></div>
+<div style="position: absolute; inset: 28.5%; box-sizing: border-box; border-radius: 50%; border: 1.5px solid #FFA630"></div>
+<div style="position: absolute; inset: 45.5%; box-sizing: border-box; border-radius: 50%; border: 1.5px solid #FFA630"></div>
+<div style="position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; box-sizing: border-box; border-radius: 50%; border: 3px solid #F3F1EA; background: rgba(14, 17, 20, 0.5); transform: rotate(9deg) translateY(-119px)"></div>
+<div style="position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; box-sizing: border-box; border-radius: 50%; border: 3px solid #F3F1EA; background: rgba(14, 17, 20, 0.5); transform: rotate(99deg) translateY(-119px)"></div>
+<div style="position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; box-sizing: border-box; border-radius: 50%; border: 3px solid #F3F1EA; background: rgba(14, 17, 20, 0.5); transform: rotate(189deg) translateY(-119px)"></div>
+<div style="position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; box-sizing: border-box; border-radius: 50%; border: 3px solid #F3F1EA; background: rgba(14, 17, 20, 0.5); transform: rotate(279deg) translateY(-119px)"></div>
+</div>
+<div style="position: absolute; left: 20px; right: 20px; top: 60px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 10px">
+<button type="button" aria-label="Retour" style="width: 44px; height: 44px; border: none; border-radius: 22px; background: rgba(14, 17, 20, 0.78); color: #F3F1EA; display: flex; align-items: center; justify-content: center; padding: 0">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+</button>
+<div style="height: 44px; padding: 0 16px; border-radius: 22px; background: rgba(14, 17, 20, 0.78); display: flex; align-items: center; font-size: 15px; font-weight: 700">Calibrage · étape 2 sur 3</div>
+</div>
+<div style="padding: 12px 14px; border-radius: 14px; background: rgba(14, 17, 20, 0.78); font-size: 15px; line-height: 20px">Faites glisser les 4 repères sur le bord extérieur du double, aux jonctions 20/1, 6/10, 3/19 et 11/14.</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 34px; background: #171C21; border-top: 1px solid #2E3640">
+<div style="display: flex; align-items: center; gap: 10px; height: 24px">
+<span style="font-size: 15px; line-height: 20px; color: #A9B1BA">Alignement de la grille</span>
+<span aria-hidden="true" style="display: flex; gap: 3px; margin-left: auto"><span style="width: 14px; height: 8px; border-radius: 2px; background: #5CB2FF"></span><span style="width: 14px; height: 8px; border-radius: 2px; background: #5CB2FF"></span><span style="width: 14px; height: 8px; border-radius: 2px; background: #5CB2FF"></span><span style="width: 14px; height: 8px; border-radius: 2px; background: #2E3640"></span></span>
+<span style="font-size: 15px; line-height: 20px; font-weight: 700">Bon</span>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 18px; color: #A9B1BA">Posez l'appareil sur un support à environ 1 m, décalé de 20 à 30° de l'axe, toute la cible dans l'image.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button type="button" style="height: 52px; border: 1px solid #2E3640; border-radius: 16px; background: transparent; color: #F3F1EA; font: inherit; font-size: 16px; font-weight: 600">Détection auto</button>
+<button type="button" style="height: 52px; border: none; border-radius: 16px; background: #FFA630; color: #1A1206; font: inherit; font-size: 16px; font-weight: 700">Valider</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
