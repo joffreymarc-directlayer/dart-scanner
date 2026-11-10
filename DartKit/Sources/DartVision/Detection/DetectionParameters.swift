@@ -55,7 +55,11 @@ public struct DetectionParameters: Hashable, Codable, Sendable {
     public var walkAhead: Double = 25
     public var walkGap: Double = 2
     public var lateralHalfWidth: Double = 2.5
-    public var tipCapCorrection: Double = 0.8
+    /// VISION.md §5.3 prints 0.8 [sonde]. On the delivered renderer (a flat-ended point of radius 1.15 mm, §10.1)
+    /// the walk of D8 ends 1.1 mm beyond the entry point, as §5.2 itself states ("à r du vrai point d'entrée"):
+    /// with 0.8 the mean along-axis error is +0.31 to +0.33 mm, outside T2 (±0.3); with 1.1 it is +0.03 mm. A
+    /// starting value to tune on real recordings (§11.2); reported to the integrator.
+    public var tipCapCorrection: Double = 1.1
     // D9 plausibility
     public var pointMaxWidth: Double = 4
     public var pointCheckLength: Double = 6

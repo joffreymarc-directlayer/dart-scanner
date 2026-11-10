@@ -103,11 +103,16 @@ public enum CallerPhrases {
         context.players.indices.contains(index) ? context.players[index].name : nil
     }
 
-    /// "de Léa", "d'Alice": French elides "de" before a vowel. A name starting with H or Y keeps "de".
+    /// "de Léa", "d'Alice": French elides "de" before a vowel. A name starting with H keeps "de". A Y before a
+    /// consonant is the vowel of "Yves" ("d'Yves"); before a vowel it is the consonant of "Yann" ("de Yann").
     private static func frenchOf(_ name: String) -> String {
-        guard let first = name.first else { return "de \(name)" }
-        let folded = String(first).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
-        return ["a", "e", "i", "o", "u", "œ", "æ"].contains(folded) ? "d'\(name)" : "de \(name)"
+        let letters = name.prefix(2).map { String($0).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil) }
+        guard let first = letters.first else { return "de \(name)" }
+        let vowels: Set<String> = ["a", "e", "i", "o", "u", "y", "œ", "æ"]
+        let isVowel = first == "y"
+            ? letters.count > 1 && letters[1].first?.isLetter == true && !vowels.contains(letters[1])
+            : vowels.contains(first)
+        return isVowel ? "d'\(name)" : "de \(name)"
     }
 
     /// "Léa", "Léa et Tom", "Léa, Tom et Zoé".

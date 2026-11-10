@@ -104,6 +104,18 @@ Vérifié après la fusion et ces corrections : `swift build` sans avertissement
 
 Toujours pas vérifié : les lots des vagues 2 à 4 (calibrage, détection, moteur de scan, écrans de jeu et de caméra) ; ce que l'on entend et ce que l'on sent (effets, voix, vibrations, session audio en mode silencieux, interruptions) ; rien n'a tourné sur un appareil réel.
 
+**Intégration de la vague 2** (lots V2, V3 et U2 ; revues indépendantes des neuf lots de la vague 1, notées RG1, RG2, RV, RA et RU ; même machine, même jour). Les huit unités sont fusionnées ; aucune n'a touché un fichier hors de ses chemins (§13.2), et la fusion n'a produit aucune collision de noms (§13.4). Les revues ont trouvé et corrigé quatre défauts dans le code de la vague 1, chacun d'abord reproduit par un test : sur la cible de l'écran, avec `onTap` **et** `onLongPress`, aucun tap ne posait de fléchette (lot U1, `DartboardView`) ; la ligne A14 du réducteur reprenait une référence vide sans contrôle de dérive (lot V4) ; « Au tour de Yves » n'était pas élidé (lot A1) ; un test en temps réel de `SyntheticFrameSource` échouait sous charge (lot V1, test seul). Corrections et précisions de la fusion, le dépôt et les documents disant de nouveau la même chose :
+
+- §8.4.7 : le listing de `PlayViewModel` imprime six membres ajoutés par le lot U2 et dont le lot U3 a besoin (`handle(_:)`, `resolvePending(with: BoardTap)`, `confirmBoardEmpty()`, `evidenceImage(for:)`, `rescore(_:tip:)`, `hasSource`) ; aucune signature imprimée ne change ;
+- §8.6, §8.8, §8.10 : ce que le lot U2 a fait là où le texte se taisait ou ne se réalisait pas tel quel (démarrage idempotent, partie reprise finie, `confirmDart` resynchronise, un seul `Layout` pour l'écran de jeu, barre de navigation du système), l'appui long signalé au relâcher, et l'ajout d'un champ à un réglage, qui est un changement incompatible ;
+- deux lignes de code à la fusion : un sous-titre de `ToggleRow` passe à la ligne au lieu d'être coupé (lot U1) ; « Au tour de … » sur l'écran de jeu est la phrase de l'annonce, qui élide (« Au tour d'Alice »), au lieu d'une chaîne qui n'élidait jamais (lot U2) ;
+- §7.2, §7.5 : le commentaire de `InterfaceCue.dartUndecided` dit ce que la table de §7.3 fait (« À vérifier » est dit, le score ne l'est pas) ; règle d'élision devant Y ;
+- `VISION.md` reçoit les recettes que les lots V2 et V3 ont dû remplacer, deux valeurs par défaut (`tipCapCorrection` 1,1 mm ; quatre points par case dans la postérieure) et des commentaires de son listing, et les lignes 1 et A14 et `beginVisit` précisées par la revue du réducteur (journal en tête) ; `GAMES.md` précise le `player` de `lifeLost` au Killer et les couleurs du Combat (journal en tête).
+
+Vérifié après la fusion et ces corrections : `swift build` sans avertissement, construction propre comprise ; `swift test` passe 1 421 tests Swift Testing, 134 dans `DartCoreTests`, 506 dans `DartGamesTests`, 336 dans `DartVisionTests`, 239 dans `DartAudioTests` et 206 dans `DartUITests` ; `swift test -c release --filter DartVisionTests` passe ses 336 tests, suites lourdes comprises ; `xcodebuild -scheme DartUI -destination 'generic/platform=iOS Simulator' build` passe sans avertissement ; `swift run SnapshotTool` écrit 33 écrans en français et en anglais, comparés aux maquettes pour l'accueil, la préparation du Killer, le jeu du Killer sur iPhone et iPad, le X01, la correction et les résultats ; la coquille iOS se construit pour les simulateurs iPhone 17 et iPad Pro 13 pouces (M5), et l'application, lancée dans les deux, reste en vie sur l'accueil et ses quatorze jeux, en thème sombre. Des 46 fichiers imprimés, 37 sont identiques au dépôt ; les neuf autres sont les huit squelettes de la vague 1 et `PlayViewModel.swift`, rempli par le lot U2, signatures inchangées.
+
+Toujours pas vérifié : les lots de la vague 3 (moteur de scan, écrans de caméra) ; aucune image réelle n'est passée dans le calibrage ni dans la détection, et tous les seuils restent synthétiques ; le parcours de jeu n'a été joué que par les tests et les instantanés, pas au doigt dans le Simulateur (tap, appui long, feuilles, alertes) ; ce que l'on entend et ce que l'on sent ; rien n'a tourné sur un appareil réel.
+
 ## Sommaire
 
 1. [Vue d'ensemble](#1-vue-densemble)
@@ -3380,7 +3392,7 @@ public enum InterfaceCue: Hashable, Sendable {
     case gameStarted(firstPlayer: PlayerIndex)
     /// Medium-confidence dart: played after the dart's own cues.
     case dartNeedsReview
-    /// Low-confidence dart: not sent to the game, nothing is announced.
+    /// Low-confidence dart: not sent to the game; its score is not announced, only "Please check" (§7.3).
     case dartUndecided
     /// A dart arrived while the turn was complete.
     case dartIgnored
@@ -3644,7 +3656,7 @@ Précisions de la réalisation (lot A1) :
 
 - dans **un même lot**, une phrase `low` qu'une phrase `high` du lot couperait moins de 0,5 s après son début n'est pas commencée : sur un 180 ou un bust, seule l'exclamation s'entend, jamais « Tri— Cent quatre-vingts ! ». Appliquée à la lettre, la règle « `high` interrompt tout » laisse aussi une phrase `high` couper une phrase `high` plus ancienne du même lot (« Tom est éliminé » coupé 0,7 s plus tard par le nom du vainqueur) : c'est le comportement livré ;
 - une phrase dont la voix ne signale jamais la fin est abandonnée au bout de 12 s, pour que l'annonce ne se bloque pas ; au plus 4 phrases attendent, les plus anciennes sont retirées ;
-- en français, « de » s'élide devant une voyelle (« Au tour d'Alice ») ; `winners([])` rend « Partie terminée » / "Game over".
+- en français, « de » s'élide devant une voyelle (« Au tour d'Alice »), y compris un Y suivi d'une consonne (« Au tour d'Yves » ; mais « de Yann », « de Hugo ») ; `winners([])` rend « Partie terminée » / "Game over".
 
 Point non vérifié, à essayer sur un appareil : le comportement de la session vocale séparée quand le commutateur Silence est actif. Repli sans changement d'API : régler `ducksMusicWhileSpeaking` à `false`, la voix suit alors la session de l'application.
 
@@ -4447,6 +4459,7 @@ Fichier `DartKit/Sources/DartUI/Play/PlayViewModel.swift` (lot U2 ; initialiseur
 
 ```swift
 import Foundation
+import CoreGraphics
 import Observation
 import DartCore
 import DartAudio
@@ -4520,6 +4533,9 @@ final class PlayViewModel: Identifiable {
     /// Subscribes to the source, synchronises it with the phase of the match (new or resumed game), announces
     /// the player to throw. Call from `.task` of the play screen.
     func run(boardConfirmedEmpty: Bool) async { unimplemented() }
+    /// Reaction to one event of the source (table "Événements de la source", §8.6). `run` calls it for every
+    /// event of the stream, one at a time, on the main actor.
+    func handle(_ event: DartInputEvent) { unimplemented() }
 
     // Darts
     /// Entry point for EVERY dart (camera, scan, photo, manual).
@@ -4532,6 +4548,9 @@ final class PlayViewModel: Identifiable {
     // Corrections (current turn only)
     /// Answers the head of `pending`: the chosen hit, or nil to discard the detection.
     func resolvePending(with hit: Hit?) { unimplemented() }
+    /// Answers the head of `pending` with a point of the virtual board of the correction sheet: the hit AND the
+    /// position under the finger are applied together (§8.6, "Écran de correction").
+    func resolvePending(with tap: BoardTap) { unimplemented() }
     func correctDart(at index: Int, to hit: Hit, position: BoardPoint? = nil) { unimplemented() }
     func removeDart(at index: Int) { unimplemented() }
     /// Accepts a dart shown as "à vérifier" as it is.
@@ -4545,6 +4564,9 @@ final class PlayViewModel: Identifiable {
     /// (`descriptor.confirmsShortTurn`), else calls `endTurn`.
     func requestEndTurn() { unimplemented() }
     func endTurn() { unimplemented() }
+    /// The player answers the status `needsEmptyBoard`: the board is empty now (§8.7). The only call of
+    /// `source.boardConfirmedEmpty()`: the next-player button never sends it.
+    func confirmBoardEmpty() { unimplemented() }
 
     // End of the game
     var isFinished: Bool { unimplemented() }
@@ -4556,6 +4578,14 @@ final class PlayViewModel: Identifiable {
     func suspend() { unimplemented() }
     /// Same players, same options, new seed.
     func rematchConfiguration(seed: UInt64) -> GameConfiguration { unimplemented() }
+
+    // Queries of the correction sheet and of the camera screens (the source stays private)
+    /// Magnified real image around a dart of the source; nil without a source or without an image.
+    func evidenceImage(for id: UUID) async -> CGImage? { unimplemented() }
+    /// The dart re-scored from a tip moved on the evidence image; nil without a source.
+    func rescore(_ id: UUID, tip point: BoardPoint) async -> DartProposal? { unimplemented() }
+    /// True when the game has an automatic source (camera or scan): the scan pill and the live view exist.
+    var hasSource: Bool { unimplemented() }
 }
 ```
 
@@ -5278,6 +5308,16 @@ C'est la photo importée ou prise à main levée qui justifie le « toujours » 
 - la cible virtuelle de l'écran est dessinée avec `descriptor.boardGeometry` ; un tap y donne une case et une position (`BoardTap`), appliquées ensemble ;
 - une case prise dans la liste part sans position. Dans un jeu dépendant de la position, le moteur lui donne alors la position canonique de la case (§4.2) ; l'écran place donc le sélecteur sur la cible avant la liste, et la liste reste un raccourci.
 
+**Précisions de la réalisation (lot U2).**
+
+- Membres de `PlayViewModel` ajoutés au listing de §8.4.7 pour que les écrans du lot U3 s'y appuient, la source restant privée : `handle(_:)` (une ligne du tableau « Événements de la source »), `resolvePending(with: BoardTap)` (un tap de la cible virtuelle de l'écran de correction répond à la tête de `pending` avec la case **et** la position), `confirmBoardEmpty()` (seul appel de `source.boardConfirmedEmpty()`, réponse au statut `needsEmptyBoard`), `evidenceImage(for:)`, `rescore(_:tip:)` et `hasSource`.
+- `run` est idempotent : les commandes du démarrage (`gameStarted`, première synchronisation, annonce) partent une fois par partie ; un `run` suivant (l'écran réapparaît) n'ouvre qu'un nouveau flux. `finishGame()` et `suspend()` n'agissent qu'une fois, le premier des deux envoie `gameEnded()`.
+- Une partie reprise en phase `finished` se rouvre sur ses résultats sans poser « La cible est-elle vide ? » : `run` envoie `gameStarted(boardConfirmedEmpty: false)` puis `turnClosed()`.
+- `confirmDart(at:)` est une correction comme les autres : « Après chacune » s'applique (sauvegarde, puis `turnBegan`/`turnClosed`) ; `removeDart` et `resolvePending(with: nil)` jouent aussi `correctionApplied` (§10.2). Le passage à `needsCalibration` joue `calibrationLost` à chaque entrée dans ce statut, démarrage à froid sans calibrage compris.
+- L'assombrissement de la cible dépend du gabarit de jeu (`playStyle`), jamais de l'identifiant : jamais sur le gabarit « score » (X01, Cricket, Alunissage, Meilleur score, Tireuse), selon `DESIGN.md` §3 sur le gabarit « cible ».
+- L'écran de jeu ajoute ce que le texte demande et que les maquettes ne montrent pas : « Manqué » en bas à droite de la cible, un bouton de sortie (×) avec « Garder pour plus tard » et « Abandonner », l'annulation sur l'écran des résultats (la partie reste corrigeable), une carte de reprise à l'accueil. « Au tour de … » à l'écran est la phrase de l'annonce (`CallerPhrases.nextPlayer`), qui élide comme la voix (§7.5).
+- Un appui long sur la cible est signalé **au relâcher**, au point où il a commencé ; la vue agrandie s'ouvre donc au relâcher (revue du lot U1 : avec un rappel pendant l'appui, `exclusively(before:)` ne rendait plus jamais la main au tap, et aucun tap ne posait de fléchette).
+
 ### 8.7 Parcours caméra
 
 `CameraModel` possède le service de scan pour toute l'application. `CameraInputSource` (lot U3, créé par `CameraModel.makeInputSource(mode:)`) adapte ce service au protocole `DartInputSource`. Le mode fixe le déclencheur pour toute la partie : `.live` donne `ScanTrigger.automatic`, `.photo` donne `ScanTrigger.manual`.
@@ -5433,7 +5473,8 @@ enum PlayLayout: Equatable {
 }
 ```
 
-- La bascule utilise `AnyLayout(HStackLayout(…))` / `AnyLayout(VStackLayout(…))` pour garder l'identité des vues : la cible et l'aperçu caméra survivent à une rotation.
+- La bascule utilise `AnyLayout(HStackLayout(…))` / `AnyLayout(VStackLayout(…))` pour garder l'identité des vues : la cible et l'aperçu caméra survivent à une rotation. *Réalisation (lot U2) :* l'écran de jeu range ses blocs dans un ordre différent selon la disposition (empilé : en-tête, cible, joueurs ; côte à côte : la cible, puis en-tête et joueurs) ; un seul `Layout` propre à quatre sous-vues (`PlayScreenLayout`) garde la même identité à la rotation, ce que deux `AnyLayout` ne pouvaient pas.
+- *Réalisation (lot U2) :* la barre de navigation ne peut pas être masquée sur les deux plateformes (`ToolbarPlacement.navigationBar` n'existe pas sur macOS, et `#if os(iOS)` n'est permis que dans `PlatformShims`). Accueil, préparation, joueurs et réglages utilisent la barre du système (`navigationTitle`, bouton des réglages à l'accueil) ; la ligne d'en-tête des maquettes n'est dessinée que dans les instantanés.
 - `stacked` : en-tête, carte du joueur courant avec ses trois cases, cible carrée (au plus 45 % de la hauteur), liste des joueurs défilante, barre d'actions fixée en bas.
 - `sideBySide` : cible à gauche sur toute la hauteur ; à droite en-tête, joueur courant, joueurs, vignette caméra, actions (`PadPlayKiller`). C'est aussi la mise en page de l'iPhone en paysage.
 - Dimensions : `Theme.Metrics(horizontalSizeClass)`. Les seules entrées de mise en page sont `horizontalSizeClass` et la taille du conteneur (`GeometryReader` à la racine de l'écran).
@@ -5496,7 +5537,7 @@ Tout passe par `AppStorage` (§8.4.5), en JSON, dans `UserDefaults`. Les volumes
 - `StoredCalibration` contient un `BoardCalibration` entier : sa forme `Codable` porte tous ses champs, dont `wireHeight` (`VISION.md` §9.2).
 - Les images de référence de la vision ne sont jamais enregistrées (`VISION.md` §4.10).
 - Un blob illisible rend la valeur par défaut ; il ne bloque jamais le lancement.
-- Le suffixe `.v1` fait partie de la clé : un changement de format incompatible prend un nouveau suffixe.
+- Le suffixe `.v1` fait partie de la clé : un changement de format incompatible prend un nouveau suffixe. `AppSettings` et les autres valeurs utilisent le `Codable` synthétisé : **ajouter un champ est un changement incompatible** (un blob de l'ancienne forme ne se lit plus et rend la valeur par défaut, `KernelStorageTests`). Une version qui ajoute un réglage prend donc un nouveau suffixe, ou écrit un décodeur tolérant dans le même changement.
 
 ### 8.11 SnapshotTool
 
@@ -6268,6 +6309,12 @@ Les quatre premiers sujets étaient des désaccords entre documents dans la vers
 | Présentation après une fin à la limite de manches | lots G1 et G4 : la volée du noyau est vide (§4.7) alors que la règle garde l'état de son dernier tour | `turnSummary` à `nil`, légendes coupées à la volée, dans les quatorze jeux (§5.6) ; `provisional` du Golf à 5 (§5.5) |
 | Événement propre et `noEffect` | `GAMES.md` §2.10 émet `noEffect` pour toute fléchette sans effet ; §3.4 ne donne que `doubleInRequired` (lot G1) | l'événement propre remplace `noEffect` : `doubleInRequired` au X01, `healWasted` au Combat (`GAMES.md` §2.10, §3.4) ; la table de §7.3 les sonne de la même façon |
 | Phrases d'un même lot | §7.5 : `high` interrompt tout ; appliqué à la lettre, une phrase `low` serait coupée dès son premier mot (lot A1) | une phrase `low` qu'une phrase `high` du même lot couperait avant 0,5 s n'est pas commencée ; une phrase `high` coupe encore une phrase `high` plus ancienne du lot (§7.5) |
+| Membres de `PlayViewModel` pour le lot U3 | lot U2 : la source est privée, et le contrat ne donnait aucun moyen de répondre à `needsEmptyBoard`, de lire l'image de preuve ni de répondre à une fléchette en attente par un tap | six membres imprimés en §8.4.7 (`handle`, `resolvePending(with: BoardTap)`, `confirmBoardEmpty`, `evidenceImage`, `rescore`, `hasSource`) ; comportement en §8.6 |
+| Date et identifiant d'un calibrage | lot V2 : l'API ne reçoit aucune horloge et le code testé n'appelle ni `Date()` ni `UUID()` | `createdAt` à la date de référence, `id` empreinte du contenu ; même entrée, même valeur (X16) (`VISION.md` §4.1, §9.2) |
+| Correction de calotte | `VISION.md` §5.3 : 0,8 mm ; lot V3 : biais de +0,33 mm, hors de T2 | 1,1 mm (`VISION.md` §5.2, §5.3, §9.2) |
+| Suggestion de vérifier la lumière | `VISION.md` §7.6 la demande, §9.2 n'expose que `shouldSuggestScanMode` | `TrustTracker.shouldSuggestLightingCheck`, membre `internal` lu par le moteur (V5) dans le module ; l'API publique ne change pas |
+| Appui long sur la cible | `DESIGN.md` §5 et §8.6 ne disent pas quand la vue agrandie s'ouvre ; revue du lot U1 : un rappel pendant l'appui empêchait tout tap | signalé au relâcher (§8.6) |
+| Élision de « de » à l'écran | lot A1 élide dans la voix ; la chaîne `play.turnOf` de l'écran n'élidait jamais | l'écran affiche `CallerPhrases.nextPlayer` (§8.6) ; la clé `play.turnOf` reste dans les tables, inutilisée |
 
 ---
 

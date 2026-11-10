@@ -21,6 +21,8 @@ Précision apportée après la vérification de la fondation (lot F0), sans chan
 
 Précisions apportées à l'intégration de la vague 1 (les quatorze moteurs livrés), sans changement de règle ni de vecteur : ce que les moteurs font là où le texte se taisait. Un événement propre remplace `noEffect` (2.10, 3.4) ; les surbrillances de Shanghai sont des cases (2.9, 7.7) ; ce que voit un joueur du Killer qui vient de s'éliminer (5.7) ; `advancedBy` du Tour de l'horloge au plafond et au bull (6.8) ; les cibles à venir de La Moitié (9.7) ; le `player` de `damaged` au Combat est la victime (11.8) ; le bull du Conquérant quand le joueur courant est le Roi (12.7).
 
+Précisions apportées à l'intégration de la vague 2 (revues des lots de jeux), sans changement de règle ni de vecteur : le `player` de `lifeLost` au Killer est la victime, comme le code et KIL-4 le font déjà (5.8) ; au Combat, la case de soin et les points faibles prennent la couleur de leur propriétaire, le vert et le rouge de 11.7 n'étaient qu'une illustration (11.7).
+
 ## Sommaire
 
 1. [Catalogue](#1-catalogue)
@@ -925,7 +927,7 @@ Chaque zone est dessinée comme un bloc de secteurs entiers avec ses numéros su
 |---|---|---|
 | `armingHit(player, progress)` | touche d'armement | une pastille s'allume, la zone se remplit |
 | `becameKiller(player)` | dernière touche d'armement | notification « Killer ! », son d'arme |
-| `lifeLost(player, by, livesLeft)` | une vie perdue | impact, vie qui disparaît |
+| `lifeLost(player, by, livesLeft)` | une vie perdue ; `player` est la **victime** et `by` le lanceur (exception à la règle de 2.10, comme `damaged` au Combat, 11.8 ; `by = player` pour une auto-élimination, KIL-4) | impact, vie qui disparaît |
 | `playerEliminated(player, by)` | 0 vie | son d'élimination, carte grisée |
 | `zoneChanged(player, zone)` | retirage `expert`, pendant `endTurn`, juste avant `turnStarted` | le segment se déplace ; annonce du nouveau numéro |
 | `noEffect(player)` | fléchette sans effet | son neutre |
@@ -1566,8 +1568,9 @@ Par joueur : `lives` sur le maximum (barre de vie, valeur principale), `healNumb
 
 Surbrillances pour le joueur courant `P` :
 
-- `sector(healNumber de P)` : `secondary` si `P` n'est pas au maximum, `own` sinon (affiché en vert) ;
-- points faibles de chaque adversaire en vie : `target`, couleur de l'adversaire (affichés en rouge) ;
+- `sector(healNumber de P)` : `secondary` si `P` n'est pas au maximum, `own` sinon, propriétaire `P` ;
+- points faibles de chaque adversaire en vie : `target`, propriétaire l'adversaire ;
+- les couleurs sont celles des joueurs propriétaires (2.9, `ARCHITECTURE.md` §5.6), pas un vert et un rouge fixes ;
 - les points faibles de `P` ne sont pas surlignés pendant son tour (ils restent lisibles sur sa carte).
 
 ### 11.8 Événements

@@ -161,8 +161,10 @@ import DartCore
     }
 
     @Test func frameSource_deliversOnTheQueueAndStops() async throws {
-        // In real time: one frame every 1/30 s, so that the stop comes in the middle of the script.
-        let script = SyntheticScript([.wait(1)])
+        // In real time: one frame every 1/30 s, so that the stop comes in the middle of the script. Twenty seconds of
+        // script: with one second, a busy machine (the whole `swift test` run in parallel) let the 30 frames go out
+        // before the test read its fourth one, and the test failed although the source was right.
+        let script = SyntheticScript([.wait(20)])
         let source = SyntheticFrameSource(script: script, camera: camera, scene: SupportScenes.exact(), realTime: true)
         let queue = DispatchQueue(label: "imaging.script.test")
         let (stream, continuation) = AsyncStream<TimeInterval>.makeStream()

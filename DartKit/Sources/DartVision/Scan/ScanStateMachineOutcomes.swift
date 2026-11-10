@@ -102,6 +102,9 @@ extension ScanStateMachine {
             if known.isEmpty, !unseenDartOnBoard {
                 emptyReference = .fresh
                 out.work.append(.updateReference(.rollingAndEmpty))
+                // §4.9: every new empty reference is checked for drift. After an episode the check of row 5 ran on
+                // this very pose; the idle check of row 9 has no episode, so the check is asked for here.
+                if kind == .none { out.request = .checkCalibration }
             } else {
                 if emptyReference == .fresh { emptyReference = .stale }
                 out.work.append(.updateReference(.rolling))

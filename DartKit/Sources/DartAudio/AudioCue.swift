@@ -86,7 +86,7 @@ public enum InterfaceCue: Hashable, Sendable {
     case gameStarted(firstPlayer: PlayerIndex)
     /// Medium-confidence dart: played after the dart's own cues.
     case dartNeedsReview
-    /// Low-confidence dart: not sent to the game, nothing is announced.
+    /// Low-confidence dart: not sent to the game; its score is not announced, only "Please check" (§7.3).
     case dartUndecided
     /// A dart arrived while the turn was complete.
     case dartIgnored

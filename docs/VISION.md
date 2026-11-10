@@ -17,6 +17,12 @@ Précisions apportées à l'intégration de la vague 1 (lots V1 et V4 livrés), 
 - lot V1 : le seuil de l'inverse d'une homographie s'applique après équilibrage, sans quoi les vues réelles étaient refusées (4.2, 9.2) ; `Homography(from:to:)` refuse aussi quatre points dont trois sont alignés (4.2, M3) ; le repli de l'auto-calibrage sous 3° (4.2, M5) ; ce que « exact » veut dire en M11 ; taille d'image des poses C et D (10.2) ; occultation exacte des pièces d'une fléchette et chronologie de `SyntheticScript` (10.1) ;
 - lot V4 : ce que le moteur fait seul, faute d'effet du réducteur (références et silhouettes, entrée `.armed`) ; les lignes DM1, DM2, A3, A13, A14 et K2 précisées là où le texte laissait deux lectures (6.3).
 
+Précisions et corrections apportées à l'intégration de la vague 2 (lots V2 et V3 livrés, revue des lots V1 et V4). Les recettes ci-dessous ont été remplacées parce qu'appliquées à la lettre elles échouaient sur les images de synthèse ; aucune signature de l'API publique ne change, deux valeurs par défaut et des commentaires du listing changent (9.2) :
+
+- lot V2 : C2 mesure le milieu de la bosse de couleur d'un fil, et non le centroïde d'énergie, biaisé de 0,25 à 0,6 mm (4.5) ; la médiane d'acceptation de C2 se prend loin du pic et la fenêtre reste de ±4 mm (4.5, 4.6) ; C4 répète ses tours jusqu'à 8 fois (4.6) ; les rayons de L2 avancent par demi-pixel (4.3) ; `edgesNotVisible` compte l'énergie d'arête à ±12 mm et non les échantillons acceptés (4.9) ; `sectorPhaseMismatch` donne le grade `poor` (4.7) ; `id` et `createdAt` d'un calibrage sont déterministes (4.1, 9.2) ; poses du coût en debug (10.2) ;
+- lot V3 : `tipCapCorrection` vaut 1,1 mm et non 0,8 (5.2 D8, 5.3, 9.2, 11) ; la postérieure lit quatre points par case (7.2, 9.2) ; épluchage à plusieurs départs (D5), largeur de bout sur la plus large suite de 3 tranches (D6), largeur de la pointe à mi-hauteur du pic (D9), et trois gardes ajoutées (D9) ; `TrustTracker.shouldSuggestLightingCheck` est interne (7.6) ;
+- revue des lots V1 et V4 : la ligne A14 demande un contrôle de dérive quand la nouvelle référence vide ne vient pas d'un épisode (6.3) ; ce que `beginVisit` fait pendant un retrait, et `setCalibration` garde les compteurs de volée (6.3, 6.5).
+
 - Les identifiants, noms de paramètres et commentaires de code sont en anglais et font foi tels quels. L'API de la section 9 a été vérifiée par le compilateur (iOS 17 et macOS 14, mode Swift 5, contrôle de concurrence complet) avec des corps vides.
 - « DOIT » / « NE DOIT PAS » marquent une exigence testable.
 - Provenance des chiffres :
@@ -254,6 +260,8 @@ Dès que quatre poignées existent (posées par la localisation automatique ou p
 | C7 | Intrinsèques et pose | socle |
 | C8 | Grade de qualité | socle |
 
+Précision de la réalisation (lot V2) : l'API ne reçoit aucune horloge, et le code testé n'appelle ni `Date()` ni `UUID()`. `preview`, `calibrate` et `recover` rendent donc `createdAt = Date(timeIntervalSinceReferenceDate: 0)` et un `id` tiré du contenu (empreinte de 128 bits des poignées, de la taille, de la rotation, des rayons, de la hauteur des fils, des intrinsèques et du grade, écrite en UUID de version 8) : les mêmes entrées donnent une valeur égale, bit pour bit, ce dont le rejeu X16 a besoin. Une date réelle de création, si elle est voulue un jour, passera par un paramètre nouveau.
+
 ### 4.2 Outils mathématiques
 
 **Homographie par 4 points (Heckbert).** Du carré unité `(0,0), (1,0), (1,1), (0,1)` vers le quadrilatère `p0..p3` :
@@ -334,7 +342,7 @@ X' = X + (X − F) · s / (D − s)
 Elle ne produit que des **poignées initiales**. Le calibrage se poursuit ensuite exactement comme avec des poignées posées à la main (C1 à C8), et le joueur valide toujours le fil de fer.
 
 - **L1. Masque de couleur.** Image de travail : moyenne par blocs pour un grand côté de 640 px. Par pixel : `mx = max(R, G, B)`, `mn = min(R, G, B)`, `sat = (mx − mn)/max(mx, 1)`, `o = (R − G)/(R + G + B + 1)`. Un pixel est « coloré » si `mx ≥ 48` et `sat ≥ Ts`, où `Ts` est le seuil d'Otsu de `sat`, borné à `[0,30 ; 0,55]`. Fermeture 3×3.
-- **L2. Bord extérieur du double.** Composantes connexes du masque. Garder celles dont la boîte englobante fait au moins 12 % du petit côté de l'image et dont le rapport d'aspect est dans `[0,45 ; 2,2]` ; essayer au plus les 4 plus grandes. Depuis le centre de la boîte, lancer 360 rayons ; sur chacun garder le pixel coloré le plus éloigné appartenant à une suite d'au moins 3.
+- **L2. Bord extérieur du double.** Composantes connexes du masque. Garder celles dont la boîte englobante fait au moins 12 % du petit côté de l'image et dont le rapport d'aspect est dans `[0,45 ; 2,2]` ; essayer au plus les 4 plus grandes. Depuis le centre de la boîte, lancer 360 rayons ; sur chacun garder le pixel coloré le plus éloigné appartenant à une suite d'au moins 3. *Réalisation (lot V2) :* les rayons avancent par pas d'un demi-pixel (une suite de 3 échantillons) ; à 1,5 m d'une caméra 4K, l'anneau double ne fait que 2 px dans l'image de travail et des pas d'un pixel ne le trouvaient que sur 51 % des rayons.
 - **L3. Ellipse.** Ajustement linéaire de la conique avec la normalisation `A + C = 1` : après normalisation des points, résoudre par élimination de Gauss les équations normales 5×5 de `A(x² − y²) + B·xy + D·x + E·y + F = −y²`. Exiger `B² − 4AC < 0`. Écarter les points dont la distance de Sampson `|pᵀQp| / (2·‖(Qp)xy‖)` dépasse 1,5 px et réajuster, deux fois. Exiger au moins 60 % des rayons conservés et un rapport d'axes d'au moins 0,45.
 - **L4. Bull.** La composante colorée la plus proche du centre de l'ellipse dont l'aire vaut 0,4 à 2,5 fois l'aire attendue du bull extérieur, soit `(15,9/170)²` fois l'aire de l'ellipse. Son centroïde est l'image `c` du centre de la cible. **Ne jamais utiliser le centre de l'ellipse** : il est à 23 px du centre projeté dans la pose d'exemple [sonde].
 - **L5. Homographie à une rotation près.** Avec la conique `Q` et `c` en coordonnées homogènes :
@@ -381,6 +389,12 @@ Un seul mécanisme sert à l'affinage, au chiffre de qualité et au contrôle de
 - Décalage `o` = centroïde de `j·δ` pondéré par l'énergie sur `|j − j*| ≤ 4`. Le centroïde se centre sur un fil qui montre deux flancs.
 - Observation `q = H·(X0 + o·n̂)` en pixels image.
 
+Réalisation (lot V2), qui remplace deux recettes ci-dessus :
+
+- le décalage `o` est le **milieu de la suite à mi-hauteur** de la distance de chaque couleur à la droite qui joint les deux couleurs de part et d'autre, bosse exactement symétrique autour du fil. Le centroïde d'énergie suit le flanc le plus fort d'un fil : biais de 0,25 à 0,3 mm sur chaque fil noir/crème, jusqu'à 0,6 mm ailleurs (RMS des arêtes 0,48 mm, contre 0,026 mm). Le test d'acceptation sur le pic d'énergie est gardé ;
+- la médiane de `g ≥ 2,5·médiane(g)` se prend sur `|j − j*| > 8`, et le profil se lit toujours sur ±4 mm ; la seconde passe de C3 ne fait que resserrer la recherche du pic à ±2 mm. Sur ±2 mm ou à 1,2 px/mm, le fil flou occupe plus de la moitié du profil et la règle à la lettre rejetait la plupart des vraies arêtes (56 % mesurés) ;
+- là où le texte se taisait : échantillons du bull extérieur au milieu de 16 secteurs, du bull intérieur tous les 30°.
+
 ### 4.6 C3 à C6 — Affinage gardé
 
 **C3. Affinage paramétré par les poignées.** Les 8 inconnues sont les positions `u` des 4 poignées ; `H(u)` est la forme close de C1. Le problème reste en pixels, la région de confiance est évidente et l'interface peut montrer les poignées qui s'aimantent.
@@ -411,6 +425,7 @@ Ces chiffres supposent que la recherche trouve les vraies arêtes. Une vraie cib
 - Le rayon extérieur du double reste à 170,0 : c'est la jauge d'échelle, et c'est le rayon des poignées.
 - Deux itérations de C3 de plus avec ces rayons. Un rayon n'est conservé que si au moins 60 % des échantillons de son anneau sont conformes ; sinon il revient au nominal.
 - `RingRadii.toNominal` : étirement radial linéaire par morceaux, de nœuds `(0, 0)`, `(R̂_bull int., 6,35)`, `(R̂_bull ext., 15,9)`, `(R̂_triple int., 99)`, `(R̂_triple ext., 107)`, `(R̂_double int., 162)`, `(170, 170)` ; identité au-delà de 170.
+- *Réalisation (lot V2) :* un seul tour (ajustement puis deux itérations de C3) laisse le rayon intérieur du double à 0,31 mm de la vérité sur la cible de C7, qui demande 0,3 mm. Les tours se répètent, 8 au plus, jusqu'à ce qu'aucun rayon ne bouge de plus de 0,005 mm.
 
 **C5. Contrôle de phase des secteurs.** Luminance moyenne des simples à r = 130 mm : les secteurs impairs (crème) doivent être plus clairs que les pairs (noirs) d'au moins 25 niveaux. Sinon le fil de fer est tourné d'un nombre impair de secteurs : `sectorPhaseMismatch`. Une rotation de deux secteurs n'est pas détectable automatiquement ; le fil de fer affiche donc 20, 6, 3 et 11 près des poignées pour que le joueur compare avec les vrais numéros.
 
@@ -440,6 +455,8 @@ G'(p) = F + (G(p) − F)·(D + s)/D          soit  pose.removingParallax(from: G
 
 - `minTanObliquity = (‖F‖ − 170)/D` : en dessous de 0,16 (9°) une fléchette perpendiculaire proche de la caméra est vue en bout et son propre empennage cache sa pointe.
 - `maxTanObliquity = (‖F‖ + 170)/D` : coût maximal d'un millimètre de pointe caché.
+- `sectorPhaseMismatch` (C5) donne le grade `poor` : un fil de fer tourné d'un secteur compte faux chaque fléchette. `preview`, qui n'affine pas, est toujours `poor` ; `estimatedAccuracy = max(0,3 ; RMS des arêtes)`, 1 mm sans RMS. La pastille ne s'affiche donc qu'après `calibrate` (lot V2).
+- `issues` est rangé dans l'ordre de déclaration de `CalibrationIssue` ; un refus liste tous les défauts bloquants trouvés ; une pose derrière la cible compte comme `handlesMirrored` ; zone des fléchettes de `dartMarginCutOff` : le disque r ≤ 170 balayé de 135 mm en s'éloignant de `F`, fraction visible comptée sur une grille de 5 mm (lot V2).
 
 **Ce que voit le joueur :**
 
@@ -472,6 +489,8 @@ Pour cette vérification, l'interface arme la vision (`arm`) le temps de voir la
 | `drifted` | pas sain, mais `recover` (C3 depuis les poignées courantes, borne de 6 mm) passe la garde | adopter le nouveau calibrage, émettre `calibrationAdjusted` |
 | `lost` | ni l'un ni l'autre | localisation automatique si elle est fournie, sinon `calibrationLost` |
 | `edgesNotVisible` | moins de 30 % d'échantillons mesurables (main, obscurité, cible aux couleurs inhabituelles) | continuer avec le calibrage courant |
+
+*Réalisation (lot V2) :* « mesurable » veut dire qu'une énergie d'arête existe à ±12 mm de l'échantillon, et non qu'il a été accepté : lu comme « moins de 30 % acceptés », un choc de 40 px en pose B mesurait 29,6 % et était pris pour l'obscurité, l'ancien calibrage restant en place. Un choc donne alors 0,57 à 0,80 et une main de 150 mm devant la cible 0,24. `assess` appelle `recover` lui-même pour départager `drifted` et `lost` ; une image d'une autre taille que le calibrage est `lost`, et `recover` rend `nil` pour elle. `recover` garde intrinsèques, rayons, hauteur des fils et rotation, et met dans `userHandles` les poignées dont il part.
 
 - Le contrôle a lieu sur la 2e image calme de chaque épisode, **avant** l'accumulation (section 6.3, ligne 5), à chaque nouvelle référence vide, et après 2 s d'obstruction immobile. En déclenchement manuel, il a lieu de la même façon à chaque pose de capture.
 - **Les références survivent à un recalage** : elles sont dans l'espace de la cible et le plan de la cible se recale exactement par la nouvelle `H`. Deux précautions : les silhouettes des fléchettes déjà plantées sont dilatées de 3 mm de plus (leur parallaxe a changé) et les fléchettes de cet événement portent `afterRelock`. Si le centre optique a bougé de plus de 30 mm, la référence courante est reprise sur l'image posée et aucune fléchette n'est cherchée dans cet événement.
@@ -573,6 +592,8 @@ Tous les pixels restants, en millimètres, entrent dans **un seul** ajustement. 
 
 **Images fixes (`maxNewDarts > 1`)** : épluchage. Ajuster la droite, prendre son couloir comme fléchette n° 1, retirer ces pixels, recommencer tant qu'il reste au moins 60 mm², trois fois au plus. Chaque fléchette porte `multiDartStill`.
 
+*Réalisation (lot V3) :* l'ACP globale passe entre deux fléchettes séparées, et la droite de deux empennages alignés l'emporte sur l'axe d'une fléchette (P4 : 19 sur 24 trouvées). L'épluchage part de plusieurs graines, note la plus longue suite contiguë du couloir central et ne prend que les composantes qui l'atteignent (24 sur 24). Le `λ1/λ2` de `lowElongation` vient de l'ACP non pondérée de `P`.
+
 #### D6. Quelle extrémité est la pointe
 
 Largeur moyenne des 20 % de tranches à chaque bout. Règles, dans l'ordre :
@@ -585,6 +606,8 @@ Largeur moyenne des 20 % de tranches à chaque bout. Règles, dans l'ordre :
 Drapeaux : `tipEndAmbiguous` si les règles 1 et 2 désignent des bouts différents (la règle 1 l'emporte) ; `nearEndWide` si le bout retenu par la règle 2 ou 3 fait plus de 12 mm de large.
 
 `u` est ensuite orienté **vers la pointe**.
+
+*Réalisation (lot V3) :* la largeur d'un bout est celle de la plus large suite de 3 tranches dans ses 20 % ; la moyenne manquait l'empennage vu par la tranche, une bande de 2 mm qui dépasse (T3 sans la règle de la pose : 93,6 % au lieu de 95 %).
 
 *Pourquoi cet ordre :* l'empennage (35 à 40 mm de large) est le repère le plus sûr quand il est visible ; la règle de la pose le confirme, ou décide seule quand l'empennage est coupé ou caché. La règle de la pose est exacte pour une fléchette perpendiculaire et reste vraie tant que la fléchette ne penche pas vers la caméra de plus que l'angle de vue local, ce que le placement sous la cible rend rare.
 
@@ -600,9 +623,11 @@ Les derniers millimètres d'une pointe sont fins et peu contrastés : on utilise
 2. Fin = dernier `t` où `P ≥ 0,5·τ`, en franchissant les trous de 2 mm au plus. Si la marche entre dans la silhouette dilatée d'une fléchette connue : arrêt, `tipPossiblyOccluded`, et `occlusionSpan` = longueur de la corde de cette silhouette le long de l'axe.
 3. Niveau = `max(0,5·τ ; 0,5·médiane(P sur les 3 derniers mm))`. `t*` = franchissement de ce niveau, interpolé linéairement.
 4. Correction latérale `w̄` = centroïde de `e` sur ±2,5 mm en travers, pris 1 mm avant `t*`.
-5. **Correction de calotte** : la pointe est un cylindre de rayon `r` ≈ 1,15 mm ; le bord de sa silhouette côté caméra est à `r` du vrai point d'entrée [sonde]. La pointe est donc reculée vers l'empennage de `tipCapCorrection = 0,8` mm :
+5. **Correction de calotte** : la pointe est un cylindre de rayon `r` ≈ 1,15 mm ; le bord de sa silhouette côté caméra est à `r` du vrai point d'entrée [sonde]. La pointe est donc reculée vers l'empennage de `tipCapCorrection = 1,1` mm :
 
-   `X̂ = m + (t* − 0,8)·u + w̄·n`, en millimètres métriques.
+   `X̂ = m + (t* − 1,1)·u + w̄·n`, en millimètres métriques.
+
+   *Réalisation (lot V3) :* la valeur de 0,8 mm laissait un biais de +0,31 à +0,33 mm le long de l'axe, hors de la tolérance de T2 (±0,3 mm), quels que soient le flou et le bruit : la silhouette finit à un rayon de pointe au-delà de l'entrée. 1,1 mm laisse +0,03 mm, avec la même justesse des cases. L'étape 4 est itérée (décalage moyen) et le plancher de bruit de 0,5·τ est retiré avant le centroïde.
 
 #### D9. Drapeaux de plausibilité
 
@@ -616,6 +641,8 @@ Les derniers millimètres d'une pointe sont fins et peu contrastés : on utilise
 | `earlierDartDisturbed` | une fléchette connue est changée de 15 à 50 % | déviation |
 | `nearCanvasEdge` | `P` touche le bord de la région d'intérêt | cadrage trop serré |
 | `clutter`, `fewNarrowPixels`, `tipEndAmbiguous`, `nearEndWide` | voir D5 à D7 | — |
+
+*Réalisation (lot V3) :* la largeur de `pointNotVisible` se mesure sur le cœur à mi-hauteur du pic de preuve de chaque tranche ; la largeur du masque d'une pointe d'acier de 2,3 mm varie de 2,0 à 4,6 mm selon l'orientation, et le test à la lettre signalait 84 pointes visibles sur 200. Trois gardes ajoutées, chacune après une erreur confiante mesurée : une pointe camouflée lève `lowTipContrast` avec un `occlusionSpan` non nul ; un bout terne qui ne fait qu'assombrir lève `implausiblyLong` ; des pixels côté pointe qui touchent une silhouette connue lèvent `tipPossiblyOccluded`. Le détecteur lève `multiDartStill` quand `maxNewDarts > 1`, `emptyReferenceStale` sans référence vide, `earlierDartDisturbed` quand une fléchette connue est retirée ou dérangée ; il ne lève jamais `beyondVisitLimit`, `afterRelock`, `warmUp`, `calibrationFair`, `calibrationPoor` ni `crossViewpoint`, que le moteur (V5) et `ConfidenceModel` ajoutent.
 
 #### D10. Sortie — `DartCandidate`
 
@@ -651,7 +678,7 @@ Tous les paramètres de la détection sont dans **une** structure, `DetectionPar
 | D7 | `narrowPartFraction`, `narrowMaxWidth`, `narrowHuberK`, `narrowMinPixels` | 0,6, 12 mm, 1,5 mm, 40 | [art antérieur] |
 | D8 | `walkThresholdRatio`, `walkCorridorHalfWidth`, `walkStep` | 0,5, 1,5 mm, 0,25 mm | [art antérieur] |
 | D8 | `walkBack`, `walkAhead`, `walkGap`, `lateralHalfWidth` | 8, 25, 2, 2,5 mm | [sonde] |
-| D8 | `tipCapCorrection` | 0,8 mm | [sonde, cylindre synthétique] |
+| D8 | `tipCapCorrection` | 1,1 mm | [sonde, cylindre synthétique ; 0,8 mm laissait +0,33 mm de biais, lot V3] |
 | D9 | `pointMaxWidth`, `pointCheckLength` | 4 mm, 6 mm | [sonde] |
 | D9 | `lowContrastRatio`, `minVisibleLength`, `minElongation` | 1,5, 25 mm, 4 | [sonde] |
 | D9 | `maxDartLength`, `maxLeanDegrees`, `occlusionProbe` | 170 mm, 20°, 2 mm | [estimation] |
@@ -738,7 +765,7 @@ Latence : le mouvement est vu 33 ms après l'impact, la pose prend 200 ms, l'ana
 
 | # | Depuis | Déclencheur | Vers | Effets |
 |---|---|---|---|---|
-| 1 | tout état | `setCalibration` | `idle` | références et silhouettes effacées ; redresseur et porte reconstruits |
+| 1 | tout état | `setCalibration` | `idle` | références et silhouettes effacées ; redresseur et porte reconstruits ; compteurs de volée (`visit`, `dartsInVisit`, `expectedDarts`) conservés, comme en P3 |
 | 2 | tout état calibré | commande `arm(boardConfirmedEmpty:)` | `arming` | références, silhouettes et compteurs (`visit`, `dartsInVisit`, fléchettes connues) remis à zéro ; épisode ou capture en cours abandonné (`discardAccumulation`) ; porte relancée ; la session a verrouillé mise au point, exposition et balance des blancs |
 | 3 | `arming` (après `arm`) | 12 images calmes | `watching(0)` | `R :=` moyenne des 4 dernières ; `E := R` si le plateau est confirmé vide, sinon `E` inconnue ; mesure de `σ̂` et du bruit de porte ; contrôle de dérive ; référence de porte |
 | 4 | état immobile | début de mouvement | `motion` | accumulation jetée ; début d'épisode |
@@ -773,7 +800,7 @@ Latence : le mouvement est vu 33 ms après l'impact, la pose prend 200 ms, l'ana
 | A11 | obstruction | `obstructed` | `R` conservée |
 | A12 | `obstructed`, pose sans obstruction | — | l'issue est réévaluée (A1 à A10) |
 | A13 | `obstructed`, immobile depuis 2 s | selon la dérive | contrôle de dérive sur l'image courante, avant toute accumulation. Saine : 4 images accumulées, puis `unrecognizedChange`, `R := S`, silhouettes conservées, retour à l'état précédent ; dérivée : recalage, puis 4 images nouvelles accumulées et analysées comme après une main (jamais d'image redressée avec le calibrage dérivé) ; arêtes invisibles : on reste, `advisory(.viewObstructed)` après 10 s ; sans réponse, le contrôle est redemandé toutes les 2 s |
-| A14 | changement d'éclairage | état précédent | `R := S`, silhouettes conservées ; `E := S` si `n = 0` et qu'aucune fléchette saisie à la main n'est sur la cible, sinon `E` périmée (6.4 : `E` n'est jamais prise avec des fléchettes sur la cible) ; `lightingChanged` |
+| A14 | changement d'éclairage | état précédent | `R := S`, silhouettes conservées ; `E := S` si `n = 0` et qu'aucune fléchette saisie à la main n'est sur la cible, sinon `E` périmée (6.4 : `E` n'est jamais prise avec des fléchettes sur la cible) ; `lightingChanged` ; contrôle de dérive (`checkCalibration`) sur la nouvelle `E` quand le changement a été vu par le contrôle au repos (ligne 9) et non au bout d'un épisode, dont la ligne 5 l'a déjà contrôlée (4.9 : un contrôle à chaque nouvelle référence vide) |
 | A15 | retrait d'un objet inconnu (garde-fantôme) | état précédent | `R := S` ; aucune fléchette |
 | A16 | changement non reconnu | état précédent | `unrecognizedChange` ; `R := S` |
 
@@ -876,7 +903,7 @@ Ces règles laissent l'API de 9.2 telle quelle ; des effets explicites (« effac
 | Commande | Effet |
 |---|---|
 | `arm(boardConfirmedEmpty:)` | début de partie, depuis tout état calibré : lignes 2 et 3 |
-| `beginVisit(expectedDarts:)` | compteur de volée + 1, `dartsInVisit = 0`, `expectedDarts` fléchettes attendues ; depuis `awaitingTakeout`, retour à `watching(n)`. Si des fléchettes de la volée précédente sont encore sur la cible, elles restent masquées et leur retrait ultérieur n'émet que `dartRemoved`. En déclenchement manuel : ligne DM4 |
+| `beginVisit(expectedDarts:)` | compteur de volée + 1, `dartsInVisit = 0`, `expectedDarts` fléchettes attendues ; depuis `awaitingTakeout` ou `takeout` (le joueur suivant interrompt un retrait), retour à `watching(n)`. Si des fléchettes de la volée précédente sont encore sur la cible, elles restent masquées et leur retrait ultérieur n'émet que `dartRemoved`, sans `takeoutStarted` ni `takeoutCompleted`, et le délai de A9 ne court plus. En déclenchement manuel : ligne DM4 |
 | `endVisit` | tour clos par la règle du jeu (bust, victoire) : passe à `awaitingTakeout` |
 | `confirmBoardEmpty` | la prochaine image posée devient `E` et `R`, sans analyse ; silhouettes effacées ; `watching(0)`. Depuis un état immobile, la pose est forcée tout de suite, comme à la ligne 9 ; pendant un épisode (`motion`, `settling`), c'est la pose de l'épisode qui sert. Depuis `idle` : ligne P3. En déclenchement manuel : ligne DM2 |
 | `rebaseline` | « Continuer » : la prochaine image posée devient `R`, obtenue de la même façon ; silhouettes et état conservés. En déclenchement manuel : ligne DM5 |
@@ -925,6 +952,8 @@ position = pointe + axe·(a_i·σ_along) + normale·(b_j·σ_across)
 Chaque position est ramenée en coordonnées nominales puis classée par `BoardGeometry.hit(at:)` ; les poids sont sommés par `Hit`. Garder au plus 6 candidats de probabilité ≥ 0,01 et renormaliser.
 
 [sonde, conception 3] Contre un Monte-Carlo de 100 000 tirages sur 300 fléchettes, l'erreur de probabilité est de 0,023 au pire et 0,0012 en moyenne. Une grille 9×9 fait moins bien (0,044).
+
+*Réalisation (lot V3) :* l'erreur au pire de la règle du point milieu dépend de l'échantillon (0,028 à 0,044 sur 300 fléchettes) : un fil le long d'une colonne de la grille déplace jusqu'à 0,11 de la masse, et F1 demande 0,03. Chaque case de la grille 21×21 est lue en ses quatre points de quart (2×2 sous-cases), ce qui donne 0,010 à 0,013. `σ_cal` vaut 1,0 mm quand `edgeResidualRMS` est `nil`.
 
 ### 7.3 Qualité des indices
 
@@ -1010,6 +1039,7 @@ Les corrections sont écrites dans l'enregistreur (`ScanRecording.record(correct
 
 - Si le joueur corrige au moins 2 fléchettes **hautes** parmi les 15 dernières : le seuil haut monte à 0,95 et `advisory(.accuracyDegraded)` propose de recalibrer ou de vérifier la lumière. Retour à 0,85 après 15 fléchettes non corrigées.
 - Si plus de 30 % des 12 dernières fléchettes caméra ont été basses ou corrigées : `advisory(.suggestLightingCheck)`, puis `advisory(.suggestScanMode)` si cela persiste.
+- *Réalisation (lot V3) :* « persiste » veut dire que le taux reste au-dessus de 30 % au-delà d'une fenêtre entière de 12 fléchettes, fenêtre pleine exigée. La suggestion de vérifier la lumière est lue par `TrustTracker.shouldSuggestLightingCheck`, membre `internal` que le moteur (V5) lit dans le module ; seul `shouldSuggestScanMode` est public (9.2).
 
 ---
 
@@ -1356,7 +1386,9 @@ public struct BoardWireframe: Sendable {
 
 /// The result of calibration. Valid only for frames of `imageSize` delivered with `rotationDegrees`.
 public struct BoardCalibration: Hashable, Codable, Sendable, Identifiable {
+    /// Digest of the content (section 4.1): equal inputs give an equal calibration, bit for bit.
     public let id: UUID
+    /// Always the reference date: the calibrator takes no clock (section 4.1).
     public let createdAt: Date
     public let imageSize: PixelSize
     public let rotationDegrees: Int
@@ -1619,7 +1651,7 @@ public struct DetectionParameters: Hashable, Codable, Sendable {
     public var walkAhead: Double = 25
     public var walkGap: Double = 2
     public var lateralHalfWidth: Double = 2.5
-    public var tipCapCorrection: Double = 0.8
+    public var tipCapCorrection: Double = 1.1
     // D9 plausibility
     public var pointMaxWidth: Double = 4
     public var pointCheckLength: Double = 6
@@ -1935,7 +1967,8 @@ public struct ConfidenceContext: Sendable {
 public struct ConfidenceModel: Sendable {
     public init(board: BoardGeometry = .standard, parameters: ConfidenceParameters = .init())
     public func uncertainty(for candidate: DartCandidate, calibration: BoardCalibration) -> TipUncertainty
-    /// Probability of each hit: midpoint rule on a `gridSide x gridSide` grid over ±`gridSpanSigmas` sigma.
+    /// Probability of each hit: each cell of a `gridSide x gridSide` grid over ±`gridSpanSigmas` sigma is read at its
+    /// four quarter points (section 7.2).
     public func posterior(tip: BoardPoint, uncertainty: TipUncertainty, occlusionSpan: Double,
                           radii: RingRadii) -> [HitCandidate]
     /// Product of the flag factors and of the detector score (section 7.3), before caps.
@@ -2768,6 +2801,8 @@ Les parties de M3, M10 et M11 qui exerçaient le calibreur sont devenues C10, C1
 
 **Coût.** Une pose sur une source 4K est chronométrée en mode release et le temps est rapporté ; seule une borne large (1 s) est exigée. Les suites lourdes (C2, T, X13) portent l'étiquette `.heavy` (`@Suite(.tags(.heavy))`) et tournent avec `swift test -c release` ; en mode debug elles utilisent des images de 1280×720. Cette étiquette est déclarée **une seule fois**, par le lot F0, dans `DartVisionTests/SmokeTests.swift` (`ARCHITECTURE.md` §13.4) : les lots V2, V3 et V5 s'en servent et n'en déclarent aucune.
 
+*Réalisation (lots V2 et V3) :* à 1280×720 les poses de référence tombent à environ 0,67 px/mm, sous la garde de 0,8 px/mm : la suite lourde de C2 tourne en debug sur les mêmes poses en pleine résolution, avec 40 tirages au lieu de 200, et les suites T avec 200 fléchettes par scénario au lieu de 500. Les suites lourdes sont aussi `.serialized` : lancées en parallèle, leur travail synchrone affamait le test en temps réel de `SyntheticFrameSource`. En C2 avec σ = 2 px, la garde de 4 mm refuse environ 12 % des tirages de la pose B (1,1 px/mm) : 194 sur 200 passent sur les poses A à D (≥ 95 %), mais la pose B seule n'atteindrait pas 95 %. En T1/T4, la population est celle des pointes d'acier ; le mélange entier (40 % acier, 40 % laiton, 20 % tout noir) est rapporté.
+
 ### 10.3 Rejeu d'enregistrements réels
 
 `DirectoryRecorder` écrit, par session : le calibrage, les événements, les échantillons de porte, les corrections du joueur et, pour chaque scène analysée, les canevas `R` et `S`. `RecordedSession.replay` repasse ces scènes dans un détecteur sur macOS. C'est **le seul moyen de régler les valeurs de départ** ; il fait partie du livrable, pas des extras. Les enregistrements réels restent hors du dépôt.
@@ -2804,7 +2839,7 @@ Méthode : enregistrer des séances avec `DirectoryRecorder`, les rejouer sur ma
 |---|---|---|
 | `shadowLowerBound` | 0,40 | vérification à une fléchette ; regarder la carte de preuve sous la lumière du joueur |
 | `evidenceThresholdFloor`, `noiseMultiplier` | 18, 6 | scènes vides : aucun fantôme ; scènes avec fléchette : silhouette entière, pointe comprise |
-| `tipCapCorrection` | 0,8 mm | erreur signée moyenne le long de l'axe, tirée des corrections « pointe déplacée » : viser zéro |
+| `tipCapCorrection` | 1,1 mm | erreur signée moyenne le long de l'axe, tirée des corrections « pointe déplacée » : viser zéro |
 | `hiddenTipLength` | 1,5 mm | dispersion de la même erreur |
 | Seuils de confiance, facteurs des drapeaux | 0,85 / 0,50 | journal des corrections : précision observée par tranche de confiance |
 | `motionOnFraction`, `quietFraction`, `settleFrames`, `skipFrames` | 0,12 %, 0,05 %, 6, 2 | séances de lancers : latence contre fausses poses (cible qui vibre encore) |

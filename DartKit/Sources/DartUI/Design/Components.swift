@@ -190,6 +190,8 @@ struct ToggleRow: View {
                         subtitle
                             .font(Theme.Typography.secondary)
                             .foregroundStyle(Theme.Palette.textSecondary)
+                            // A long subtitle wraps instead of being cut to one line.
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .multilineTextAlignment(.leading)

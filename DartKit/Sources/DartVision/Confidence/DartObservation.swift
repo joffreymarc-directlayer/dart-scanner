@@ -14,7 +14,12 @@ public struct ConfidenceThresholds: Hashable, Codable, Sendable {
     public var medium: Double = 0.50
     public init() {}
     public static let standard: ConfidenceThresholds = ConfidenceThresholds()
-    public func tier(for confidence: Double) -> ConfidenceTier { fatalError("unimplemented") }
+    /// `high` from `high` up, `medium` from `medium` up, `low` below (and for a value that is not a number).
+    public func tier(for confidence: Double) -> ConfidenceTier {
+        if confidence >= high { return .high }
+        if confidence >= medium { return .medium }
+        return .low
+    }
 }
 
 /// One scored hit and its probability.
@@ -90,11 +95,46 @@ public struct DartObservation: Identifiable, Hashable, Sendable {
         self.source = source
     }
     /// `candidates[0].hit`.
-    public var best: Hit { get { fatalError("unimplemented") } }
+    ///
+    /// An observation built by hand with no candidate (which the contract forbids) answers `MISS` instead of trapping.
+    public var best: Hit {
+        candidates.first?.hit ?? .miss
+    }
     /// Candidates first, then `nearbyHits`, without duplicates, at least `minimum` entries when available.
-    public func correctionChoices(minimum: Int = 4) -> [Hit] { fatalError("unimplemented") }
+    ///
+    /// Every candidate is listed; nearby hits are appended, nearest first, only until the list holds `minimum`
+    /// entries (VISION.md §7.5: the second candidate in one touch, then "Autre…" on the virtual board).
+    public func correctionChoices(minimum: Int = 4) -> [Hit] {
+        var choices: [Hit] = []
+        for candidate in candidates where !choices.contains(candidate.hit) {
+            choices.append(candidate.hit)
+        }
+        for hit in nearbyHits where choices.count < minimum && !choices.contains(hit) {
+            choices.append(hit)
+        }
+        return choices
+    }
     /// Game-aware tier, computed from stored fields only (section 7.4):
     /// `min(confidence * P(candidates with the outcome of the best) / P(best), cap(flags))`, then `thresholds.tier(for:)`.
+    ///
+    /// `cap(flags)` is 0.80 with `calibrationPoor` or `crossViewpoint`, 0.84 with `warmUp`, 1 otherwise: the default
+    /// caps of section 7.3, re-applied so that a capped dart stays below the high tier however its candidates
+    /// collapse. When `candidates[0].probability` is not positive (a hand-made observation), the collapsed value is
+    /// `confidence` itself, still under the cap. A value that is not a number gives `low`.
     public func tier<Key: Hashable>(collapsingBy outcome: (Hit) -> Key,
-                                    thresholds: ConfidenceThresholds = .standard) -> ConfidenceTier { fatalError("unimplemented") }
+                                    thresholds: ConfidenceThresholds = .standard) -> ConfidenceTier {
+        var cap = 1.0
+        if flags.contains(.calibrationPoor) || flags.contains(.crossViewpoint) { cap = min(cap, 0.80) }
+        if flags.contains(.warmUp) { cap = min(cap, 0.84) }
+        guard let first = candidates.first, first.probability > 0, first.probability.isFinite else {
+            return thresholds.tier(for: min(confidence, cap))
+        }
+        let key = outcome(first.hit)
+        var group = 0.0
+        for candidate in candidates where outcome(candidate.hit) == key {
+            group += candidate.probability
+        }
+        let collapsed = min(confidence * group / first.probability, cap)
+        return thresholds.tier(for: collapsed)
+    }
 }

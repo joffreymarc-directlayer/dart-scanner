@@ -56,8 +56,6 @@ struct DartboardView: View {
 
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.appLanguage) private var language
-    /// Where the long press already reported during the current touch began: a press is reported once.
-    @State private var reportedPress: CGPoint?
 
     /// - Parameters:
     ///   - highlights: zones to tint (GAMES.md §2.9); a zone with an owner uses that player's colour. A `.disc`
@@ -121,17 +119,13 @@ struct DartboardView: View {
             }
             if let onLongPress {
                 // The press itself has no location: the drag that follows it gives the point under the finger,
-                // at the first movement or, at the latest, when the finger lifts.
+                // reported once, when the finger lifts. No `onChanged` here: a handler that follows the press while
+                // it is held makes the press claim every touch from its start, and the tap of
+                // `exclusively(before:)` never fires again (KernelGestureReviewTests).
                 let press = LongPressGesture(minimumDuration: 0.5)
                     .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
-                    .onChanged { value in
-                        guard case .second(true, let drag?) = value, reportedPress != drag.startLocation else { return }
-                        reportedPress = drag.startLocation
-                        onLongPress(Self.tap(at: drag.startLocation, in: size, geometry: geometry))
-                    }
                     .onEnded { value in
-                        defer { reportedPress = nil }
-                        guard case .second(true, let drag?) = value, reportedPress != drag.startLocation else { return }
+                        guard case .second(true, let drag?) = value else { return }
                         onLongPress(Self.tap(at: drag.startLocation, in: size, geometry: geometry))
                     }
                 board
