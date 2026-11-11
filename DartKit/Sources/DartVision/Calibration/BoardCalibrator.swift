@@ -325,6 +325,10 @@ extension BoardCalibrator {
         return (current, radii)
     }
 
+    /// A healthy calibration has at least this fraction of its wire samples within `inlierDistance`, relative to the
+    /// fraction of its ring samples (review RV2): a turn of 0.5° (1.5 mm at the double) sits at the limit.
+    static let minimumWireAgreement = 0.5
+
     /// At most this many rounds of C4 (fit, then two iterations of C3).
     static let ringFitRounds = 8
     /// C4 stops when no radius moved by more than this, mm.
@@ -405,7 +409,14 @@ extension BoardCalibrator {
                                                   radii: calibration.ringRadii, parameters: parameters)
         if visible < parameters.driftNotVisibleFraction { return health(.edgesNotVisible) }
         let minimumInliers = dartsOnBoard ? parameters.driftHealthyInliersWithDarts : parameters.driftHealthyInliers
-        if median <= parameters.driftHealthyMedian, statistics.inlierFraction >= minimumInliers { return health(.healthy) }
+        // The wires must agree at least half as well as the rings (review RV2): a board turned on its bracket keeps
+        // its rings in place, and its wire samples, out of their window, are not even measured.
+        let families = HandleRefiner.familyInlierFractions(of: measurement, imageToBoard: calibration.imageToBoard,
+                                                           radii: calibration.ringRadii, parameters: parameters)
+        let wiresAgree = families.wires >= BoardCalibrator.minimumWireAgreement * families.rings
+        if median <= parameters.driftHealthyMedian, statistics.inlierFraction >= minimumInliers, wiresAgree {
+            return health(.healthy)
+        }
         return health(recover(calibration, raster: raster) == nil ? .lost : .drifted)
     }
 

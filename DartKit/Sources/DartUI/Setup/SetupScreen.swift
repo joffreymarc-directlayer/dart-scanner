@@ -295,17 +295,20 @@ private struct SetupOptionView: View {
                         .foregroundStyle(Theme.Palette.textSecondary)
                     Spacer(minLength: 0)
                     if choices.contains(where: { $0.illustration != nil }) {
-                        Button { actions.showLevels(option) } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "info.circle")
-                                L10n.text("setup.levels", .game)
-                            }
-                            .font(SetupFonts.link)
-                            .foregroundStyle(Theme.Palette.accent)
+                        // 28 pt in the line of the title, 44 pt to the finger (DESIGN.md §1): the button is laid
+                        // over a placeholder of the link's size (`PlayTouchTarget`).
+                        levelsLink
                             .frame(minHeight: 28)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(DesignRowButtonStyle())
+                            .hidden()
+                            .overlay {
+                                Button { actions.showLevels(option) } label: {
+                                    levelsLink
+                                        .frame(minHeight: Theme.Control.touchTarget)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(DesignRowButtonStyle())
+                            }
+                            .zIndex(1)
                     }
                 }
                 ForEach(choices, id: \.value) { choice in
@@ -313,6 +316,15 @@ private struct SetupOptionView: View {
                 }
             }
         }
+    }
+
+    private var levelsLink: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "info.circle")
+            L10n.text("setup.levels", .game)
+        }
+        .font(SetupFonts.link)
+        .foregroundStyle(Theme.Palette.accent)
     }
 
     private var intBinding: Binding<Int?> {

@@ -98,16 +98,28 @@ struct PlayContent: View {
         GeometryReader { proxy in
             let layout = PlayLayout.resolve(for: proxy.size)
             let metrics = Theme.Metrics(sizeClass)
-            PlayScreenLayout(mode: layout, metrics: metrics, listHeight: listHeight(metrics: metrics)) {
+            // A short screen in landscape (an iPhone): the actions go under the board, the current card drops its
+            // big number (the player's row shows it), the camera thumbnail goes under the players and the prompt
+            // over the board. The right column then keeps its height for the players, and nothing covers them.
+            let short = layout == .sideBySide && proxy.size.height < PlayScreenLayout.shortHeight
+            PlayScreenLayout(mode: layout, metrics: metrics, listHeight: listHeight(metrics: metrics), short: short) {
                 VStack(alignment: .leading, spacing: Theme.Spacing.block) {
                     PlayHeader(model: model, actions: actions, regular: sizeClass == .regular)
-                    PlayCurrentCard(model: model, actions: actions, metrics: metrics, regular: sizeClass == .regular)
+                    PlayCurrentCard(model: model, actions: actions, metrics: metrics, regular: sizeClass == .regular,
+                                    showsScore: !short)
                 }
-                board
-                playerList(metrics: metrics)
+                board(promptOver: short)
+                if short, let thumbnail {
+                    VStack(spacing: Theme.Spacing.block) {
+                        playerList(metrics: metrics)
+                        thumbnail
+                    }
+                } else {
+                    playerList(metrics: metrics)
+                }
                 VStack(spacing: Theme.Spacing.block) {
-                    if layout == .sideBySide, let thumbnail { thumbnail }
-                    PlayPromptBanner(model: model, actions: actions)
+                    if layout == .sideBySide, !short, let thumbnail { thumbnail }
+                    if !short { PlayPromptBanner(model: model, actions: actions) }
                     PlayActionBar(model: model, actions: actions, metrics: metrics)
                 }
             }
@@ -126,7 +138,7 @@ struct PlayContent: View {
         return count * metrics.playerRowHeight + max(0, count - 1) * spacing
     }
 
-    private var board: some View {
+    private func board(promptOver: Bool) -> some View {
         DartboardView(highlights: model.snapshot.highlights, darts: model.markers, geometry: model.boardGeometry,
                       dimsUnhighlighted: model.dimsBoard, showsNumbers: true,
                       // Manual input stays possible in every state (§8.6): a dart out of turn is refused by
@@ -134,6 +146,13 @@ struct PlayContent: View {
                       onTap: actions.tapBoard, onLongPress: actions.longPressBoard)
             .overlay(alignment: .bottomTrailing) {
                 PlayMissButton(action: actions.miss)
+            }
+            .overlay(alignment: .bottom) {
+                if promptOver {
+                    // Over the lower half of the board, above "Manqué", which stays reachable.
+                    PlayPromptBanner(model: model, actions: actions)
+                        .padding(.bottom, Theme.Control.touchTarget + 4)
+                }
             }
     }
 
@@ -171,6 +190,13 @@ private struct PlayScreenLayout: Layout {
     let metrics: Theme.Metrics
     /// Height the list of players needs to show every row.
     let listHeight: CGFloat
+    /// `sideBySide` in a container lower than `shortHeight`: the actions are placed under the board, and the right
+    /// column holds the top block and the players only (`PlayContent` drops the big number of the card and puts
+    /// the prompt over the board).
+    var short = false
+
+    /// Below this height (an iPhone in landscape: 440 pt at most) `sideBySide` is short.
+    static let shortHeight: CGFloat = 560
 
     private var gap: CGFloat { Theme.Spacing.block }
     /// Space between the board and the right column in `sideBySide` (mock-up `PadPlayKiller`: 32).
@@ -203,6 +229,22 @@ private struct PlayScreenLayout: Layout {
             list.place(at: CGPoint(x: bounds.minX, y: y), proposal: ProposedViewSize(width: width, height: listSpace))
             actions.place(at: CGPoint(x: bounds.minX, y: bounds.maxY), anchor: .bottomLeading,
                           proposal: ProposedViewSize(width: width, height: actionsHeight))
+        case .sideBySide where short:
+            // Left: the board, then the actions under it. Right: the top block, then the players to the bottom.
+            let gap = Theme.Spacing.block
+            let widest = max(0, min(bounds.height, bounds.width * 0.6))
+            let actionsHeight = actions.sizeThatFits(ProposedViewSize(width: widest, height: nil)).height
+            let side = max(0, min(bounds.height - actionsHeight - gap, bounds.width * 0.6))
+            board.place(at: CGPoint(x: bounds.minX, y: bounds.minY), anchor: .topLeading,
+                        proposal: ProposedViewSize(width: side, height: side))
+            actions.place(at: CGPoint(x: bounds.minX, y: bounds.maxY), anchor: .bottomLeading,
+                          proposal: ProposedViewSize(width: side, height: actionsHeight))
+            let x = bounds.minX + side + columnGap
+            let width = max(0, bounds.maxX - x)
+            let topHeight = top.sizeThatFits(ProposedViewSize(width: width, height: nil)).height
+            top.place(at: CGPoint(x: x, y: bounds.minY), proposal: ProposedViewSize(width: width, height: topHeight))
+            let y = bounds.minY + topHeight + gap
+            list.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(width: width, height: max(0, bounds.maxY - y)))
         case .sideBySide:
             let side = max(0, min(bounds.height, bounds.width * 0.6))
             board.place(at: CGPoint(x: bounds.minX, y: bounds.midY), anchor: .leading,
@@ -233,14 +275,17 @@ private struct PlayHeader: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 6) {
-            Button(action: actions.quit) {
-                Image(systemName: "xmark")
-                    .font(Theme.Typography.controlSymbol)
-                    .frame(width: 26, height: Theme.Control.touchTarget)
-                    .contentShape(Rectangle().inset(by: -9))
+            // 26 pt in the header (mock-ups), 44 pt to the finger (DESIGN.md §1).
+            PlayTouchTarget(width: 26, height: Theme.Control.touchTarget) {
+                Button(action: actions.quit) {
+                    Image(systemName: "xmark")
+                        .font(Theme.Typography.controlSymbol)
+                        .frame(width: Theme.Control.touchTarget, height: Theme.Control.touchTarget)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(DesignRowButtonStyle())
+                .accessibilityLabel(L10n.text("play.quit", .game))
             }
-            .buttonStyle(DesignRowButtonStyle())
-            .accessibilityLabel(L10n.text("play.quit", .game))
             VStack(alignment: .leading, spacing: Theme.Spacing.lines) {
                 // Title and subtitle on one line when they fit (mock-up `PlayKiller`), else one under the other.
                 ViewThatFits(in: .horizontal) {
@@ -267,18 +312,21 @@ private struct PlayHeader: View {
             PlayStatusPill(status: model.inputStatus, regular: regular, opensScan: model.headerActions.contains(.scanView),
                            action: actions.scanView)
             if model.headerActions.contains(.photo) {
-                Button(action: actions.photo) {
-                    Image(systemName: "camera")
-                        .font(PlayFonts.pillIcon)
-                        .foregroundStyle(Theme.Palette.textPrimary)
-                        .frame(width: regular ? 40 : 36, height: regular ? 30 : 28)
-                        .background(Theme.Palette.surface, in: Capsule())
-                        .overlay { Capsule().strokeBorder(Theme.Palette.line, lineWidth: Theme.Control.border) }
-                        .frame(minHeight: Theme.Control.touchTarget)
-                        .contentShape(Rectangle().inset(by: -4))
+                // The capsule's width in the header, 44 pt to the finger (DESIGN.md §5).
+                PlayTouchTarget(width: regular ? 40 : 36, height: Theme.Control.touchTarget) {
+                    Button(action: actions.photo) {
+                        Image(systemName: "camera")
+                            .font(PlayFonts.pillIcon)
+                            .foregroundStyle(Theme.Palette.textPrimary)
+                            .frame(width: regular ? 40 : 36, height: regular ? 30 : 28)
+                            .background(Theme.Palette.surface, in: Capsule())
+                            .overlay { Capsule().strokeBorder(Theme.Palette.line, lineWidth: Theme.Control.border) }
+                            .frame(width: Theme.Control.touchTarget, height: Theme.Control.touchTarget)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(DesignRowButtonStyle())
+                    .accessibilityLabel(L10n.text("play.photo", .game))
                 }
-                .buttonStyle(DesignRowButtonStyle())
-                .accessibilityLabel(L10n.text("play.photo", .game))
             }
         }
     }
@@ -373,6 +421,8 @@ private struct PlayCurrentCard: View {
     let actions: PlayContentActions
     let metrics: Theme.Metrics
     let regular: Bool
+    /// The big number of the score template; dropped in a short column, where the player's row shows it.
+    var showsScore = true
     @Environment(\.appLanguage) private var language
 
     var body: some View {
@@ -398,8 +448,19 @@ private struct PlayCurrentCard: View {
                         .foregroundStyle(Theme.Palette.textSecondary)
                         .lineLimit(1)
                 }
+                if model.playStyle == .score, !showsScore {
+                    // Without the big number: the hint (a checkout) or the summary of the turn stays on this line.
+                    if let hint = model.snapshot.turn.hint {
+                        hintText(hint)
+                    } else if let summary = model.snapshot.turn.summary {
+                        Text(verbatim: summary[language])
+                            .font(Theme.Typography.secondary)
+                            .foregroundStyle(Theme.Palette.textSecondary)
+                            .lineLimit(1)
+                    }
+                }
             }
-            if model.playStyle == .score, let row {
+            if model.playStyle == .score, showsScore, let row {
                 scoreBlock(row)
             }
             PlaySlots(model: model, actions: actions, regular: regular)
@@ -443,17 +504,7 @@ private struct PlayCurrentCard: View {
                             .foregroundStyle(Theme.Palette.textSecondary)
                     }
                     if let hint = model.snapshot.turn.hint {
-                        Text(verbatim: hint[language])
-                            .font(PlayFonts.hint)
-                            .foregroundStyle(Theme.Palette.accent)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .strokeBorder(Theme.Palette.accent, lineWidth: Theme.Control.borderBadge)
-                            }
+                        hintText(hint)
                     }
                 }
             }
@@ -461,6 +512,21 @@ private struct PlayCurrentCard: View {
                 PlayMeterView(meter: meter, color: Theme.playerColor(row.player), width: 140)
             }
         }
+    }
+
+    /// The hint of the turn ("T20 T19 D12"), outlined in `accent`.
+    private func hintText(_ hint: LocalizedText) -> some View {
+        Text(verbatim: hint[language])
+            .font(PlayFonts.hint)
+            .foregroundStyle(Theme.Palette.accent)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Theme.Palette.accent, lineWidth: Theme.Control.borderBadge)
+            }
     }
 }
 
@@ -839,6 +905,8 @@ private struct PlayPromptBanner: View {
                     Button(action: content.isBoardQuestion ? actions.confirmBoardEmpty : actions.acceptPrompt) {
                         accept
                             .font(PlayFonts.promptButton)
+                            .lineLimit(1)
+                            .fixedSize()
                             .foregroundStyle(Theme.Palette.onAccent)
                             .padding(.horizontal, 12)
                             .frame(minHeight: 36)
@@ -905,6 +973,24 @@ private struct PlayPromptBanner: View {
         case .advisory(let text)?:
             return Content(icon: "info.circle", tint: Theme.Palette.info, text: Text(verbatim: text[language]))
         }
+    }
+}
+
+// MARK: - Touch targets
+
+/// A control that takes only `width` × `height` in its row but taps over its own, larger frame (44 pt, DESIGN.md
+/// §1): it is laid over a placeholder of the smaller size, above its neighbours. A content shape larger than the
+/// frame of a button does not do it: such a button takes no tap outside its frame (GameFlowReviewGestureTests).
+struct PlayTouchTarget<Content: View>: View {
+    var width: CGFloat?
+    var height: CGFloat?
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        Color.clear
+            .frame(width: width, height: height)
+            .overlay { content }
+            .zIndex(1)
     }
 }
 

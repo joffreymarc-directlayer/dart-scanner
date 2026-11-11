@@ -240,11 +240,13 @@ final class AppModel {
     }
 
     /// Closes the play screen. Finished game: `game.finishGame()`. Unfinished game: `game.suspend()`, and
-    /// `discard` also deletes the saved game.
+    /// `discard` also deletes the saved game. The player lands on the home screen (§8.5, "Sortie"), where another
+    /// game is chosen and a kept game is resumed: never on the set-up of the game just left.
     func closeGame(discard: Bool) {
         guard let ending = game else { return }
         end(ending, discard: discard)
         game = nil
+        path = []
         resumableMatch = Self.resumableMatch(in: storage, registry: environment.registry)
     }
 

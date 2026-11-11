@@ -265,6 +265,13 @@ enum TipEstimator {
                                     parameters: parameters) {
             flags.insert(.implausiblyLong)
         }
+        // The same end on a bright bed (review RV2): a hard shadow there keeps its full contrast, so the test above
+        // never runs, and the walk follows the shadow of the point (or a piece of shadow detached from the dart) to its
+        // far end. Under a 0.20 shadow, 3 to 5 darts of 18 that came out high were wrong by 2 to 66 mm this way.
+        if TipEstimator.endIsForeignDarkening(crossing: crossing, start: maskStart, line: corrected, evidence: evidence,
+                                              parameters: parameters) {
+            flags.insert(.implausiblyLong)
+        }
 
         // Width of the last `pointCheckLength` mm before the tip, on 1 mm slices of P along the refit line. In each
         // slice only the pixels whose evidence reaches half the slice's peak count: τ is a small fraction of the
@@ -332,6 +339,15 @@ enum TipEstimator {
         static let longestCamouflage: Double = 22
         /// Added to a camouflaged stretch: the radius of a point, whose end disc is not seen either, mm.
         static let camouflageMargin: Double = 1.15
+        /// A dark end at least this long behind the crossing is not the blurred end of a silver point, mm (review
+        /// RV2: under 0.5 mm for every dart without a hard shadow, 1 mm and more for the shadows of points).
+        static let minimumDarkEnd: Double = 0.75
+        /// A coloured part that starts within this fraction of the silhouette behind the tip is the point or the
+        /// barrel of a coloured dart; the first colour of a black dart is its flight, further back (review RV2,
+        /// measured: no dart without a hard shadow lost the high tier, 7 of 8 high and wrong darts under one did).
+        static let colourOnsetFraction: Double = 0.4
+        /// Half-width of the search for the coloured part behind a dark end, mm (review RV2).
+        static let onsetHalfWidth: Double = 4
     }
 
     /// Distance of `c` to the shadow segment of `r` (D2): `‖c − clamp(α*, lo·g, hi·g)·r‖`.
@@ -425,6 +441,75 @@ enum TipEstimator {
             if alpha < low, simd_length(c - alpha * r) < tau { shadows += 1 }
         }
         return counted > 0 && 2 * shadows >= counted
+    }
+
+    /// True when the end of the walk is a darkening deeper than the shadow model that is not the point of the dart
+    /// (review RV2): a hard shadow cast beyond the tip, or a piece of it lying further along the axis, taken for the
+    /// point.
+    ///
+    /// From `crossing` towards the flight, each `walkStep` reads the strongest evidence across the walk corridor, as
+    /// the walk does. The dark end is the stretch, from the crossing, of evidence of at least half of τ whose colour
+    /// is darker than `shadowLowerBound·g` times the reference (`α* < α_lo·g`), gaps up to `walkGap` bridged. A dart
+    /// whose point is silver shows its own colour there (`α*` of 0.9 or more on every bed): the stretch is empty.
+    /// When it is at least `Lengths.minimumDarkEnd` long, the first evidence of at least τ that is not such a
+    /// darkening is looked for behind it, across the wider `Lengths.onsetHalfWidth` (the refit line may pass a few
+    /// millimetres beside the body far from the point) and over gaps of any length. Found within the tip-side
+    /// `Lengths.colourOnsetFraction` of the silhouette (`crossing − start`), it is the point or the barrel of a
+    /// coloured dart, and the dark end ahead of it a shadow (or a black point on a coloured barrel, never scored high
+    /// anyway: section 11.1, limit 5). Further back it is the flight of a black dart, dark over its point, barrel and
+    /// shaft, which is not flagged.
+    static func endIsForeignDarkening(crossing: Double, start: Double, line: BlobAnalysis.Line, evidence: ChangeEvidence,
+                                      parameters: DetectionParameters) -> Bool {
+        let total = crossing - start
+        guard total.isFinite, total > 0 else { return false }
+        let step = max(0.05, parameters.walkStep)
+        let tau = evidence.threshold
+        let half = 0.5 * tau
+        let low = Float(parameters.shadowLowerBound * evidence.gain)
+        /// The strongest evidence across `±halfWidth` at `distance` behind the crossing, and whether it is a darkening
+        /// deeper than the shadow model; nil when it is under half of τ.
+        func reading(at distance: Double, halfWidth: Double) -> (evidence: Double, dark: Bool)? {
+            let count = max(1, Int((2 * halfWidth / step).rounded()) + 1)
+            let spacing = count > 1 ? 2 * halfWidth / Double(count - 1) : 0
+            let centre = line.mean + (crossing - distance) * line.direction
+            var best = centre, strongest = -1.0
+            for lateral in 0..<count {
+                let point = centre + (-halfWidth + Double(lateral) * spacing) * line.normal
+                let e = evidence.sample(point)
+                if e > strongest {
+                    strongest = e
+                    best = point
+                }
+            }
+            guard strongest >= half, let c = colour(evidence.blurredCurrent, at: best),
+                  let r = colour(evidence.blurredReference, at: best) else { return nil }
+            return (strongest, simd_dot(c, r) / (simd_dot(r, r) + 1) < low)
+        }
+        // The dark end.
+        var darkEnd = 0.0
+        var gap = 0.0
+        var distance = 0.0
+        while distance <= total {
+            if let sample = reading(at: distance, halfWidth: parameters.walkCorridorHalfWidth) {
+                guard sample.dark else { break }
+                darkEnd = distance
+                gap = 0
+            } else {
+                gap += step
+                if gap > parameters.walkGap { break }
+            }
+            distance += step
+        }
+        guard darkEnd >= Lengths.minimumDarkEnd else { return false }
+        // The first coloured evidence behind it, in the tip-side part of the silhouette.
+        distance = darkEnd + step
+        while distance < Lengths.colourOnsetFraction * total {
+            if let sample = reading(at: distance, halfWidth: Lengths.onsetHalfWidth), !sample.dark, sample.evidence >= tau {
+                return true
+            }
+            distance += step
+        }
+        return false
     }
 
     /// True when, on the tip side, the dart's own pixels (the last `walkBack` mm before the end of the mask) touch the

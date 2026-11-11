@@ -185,10 +185,11 @@ struct HomeContent: View {
                     .frame(width: 40, height: 40)
                     .background(Theme.Palette.surfaceRaised, in: Circle())
                 VStack(alignment: .leading, spacing: Theme.Spacing.lines) {
+                    // No `minimumScaleFactor`: beside the detail line it shrank the title to about 12 pt even
+                    // with room to spare (lot I1). A title too long for a narrow screen wraps instead.
                     L10n.text(cameraTitle, .game)
                         .font(HomeFonts.cardTitle)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .fixedSize(horizontal: false, vertical: true)
                     cameraDetailText
                         .font(Theme.Typography.secondary)
                         .foregroundStyle(Theme.Palette.textSecondary)

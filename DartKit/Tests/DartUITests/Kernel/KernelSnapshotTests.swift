@@ -47,7 +47,7 @@ import DartCore
                     #expect(bitmap.width == Int(device.size.width) && bitmap.height == Int(device.size.height),
                             "\(screen.id)@\(device.rawValue)")
                     // Not empty: something else than the screen background is drawn. An entry view that is not
-                    // written yet (`StubView`) or a content that `ImageRenderer` cannot draw leaves 0 pixels; one
+                    // written yet (an empty body) or a content that `ImageRenderer` cannot draw leaves 0 pixels; one
                     // line of 16 pt text is about a thousand. The bound stays low so that a sparse screen of
                     // another lot (`camera-denied`) is not taken for an empty one.
                     let drawn = bitmap.count(differingFrom: KernelPalette.background, tolerance: 6)

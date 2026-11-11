@@ -139,13 +139,14 @@ import DartCore
 
     // MARK: T7
 
-    /// T7: a 0.20 shadow, outside the model: ≥ 90 % low, high and wrong ≤ 3 %.
+    /// T7: a 0.20 shadow, outside the model: ≥ 90 % low, and ≤ 1 % wrong among the high ones (as F2, T5, T8).
     @Test func t7_hardShadow() {
         let trials = Self.hardShadow
         let low = trials.filter { $0.tier == .low }.count
-        let highWrong = trials.filter { $0.tier == .high && !$0.isCorrect }.count
+        let highs = trials.filter { $0.tier == .high }
+        let highWrong = highs.filter { !$0.isCorrect }.count
         #expect(Double(low) >= 0.9 * Double(trials.count), "\(low) low of \(trials.count)")
-        #expect(Double(highWrong) <= 0.03 * Double(trials.count), "\(highWrong) high and wrong of \(trials.count)")
+        #expect(Double(highWrong) <= 0.01 * Double(highs.count), "\(highWrong) wrong of \(highs.count) high")
     }
 
     // MARK: T8

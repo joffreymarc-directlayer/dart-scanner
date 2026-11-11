@@ -31,7 +31,9 @@ struct PlayScreen: View {
                     }
                 }
             }
-            .sheet(item: $game.correction) { target in
+            // While a camera cover is shown, the cover presents the correction itself (lot U3): the play screen
+            // under it must not try to present the same item a second time.
+            .sheet(item: cover == nil ? $game.correction : .constant(nil)) { target in
                 CorrectionSheet(game: game, target: target)
                     .environment(app)
                     .appLanguage(language)
@@ -82,7 +84,7 @@ struct PlayScreen: View {
         if game.snapshot.phase == .finished {
             ResultsContent(snapshot: game.snapshot, players: game.match.players, canUndo: game.match.canUndo,
                            rematch: { app.rematch() }, changeGame: { app.closeGame(discard: false) },
-                           undo: { game.undo() })
+                           undo: { game.undo() }, scrolls: true)
         } else {
             PlayContent(model: PlayContentModel(game: game), actions: actions, scrollsPlayers: true,
                         thumbnail: game.hasSource ? AnyView(ScanThumbnail(camera: app.camera) { cover = .scan }) : nil)
@@ -183,7 +185,7 @@ private enum PlayCover: String, Identifiable {
     var id: String { rawValue }
 }
 
-private struct PlayMagnifierTarget: Identifiable, Hashable {
+struct PlayMagnifierTarget: Identifiable, Hashable {
     var point: BoardPoint
     var id: String { "\(point.x),\(point.y)" }
 }
@@ -218,7 +220,7 @@ private struct PlayBoardQuestion: View {
 
 /// The magnified view of a long press (DESIGN.md §5): the board drawn 2 pt per millimetre around the point,
 /// for a precise tap.
-private struct PlayMagnifier: View {
+struct PlayMagnifier: View {
     let target: PlayMagnifierTarget
     let geometry: BoardGeometry
     let tap: (BoardTap) -> Void
@@ -239,10 +241,20 @@ private struct PlayMagnifier: View {
             }
             GeometryReader { proxy in
                 let side: CGFloat = 900
+                let frame = proxy.size
                 let location = DartboardView.location(of: target.point, in: CGSize(width: side, height: side), geometry: geometry)
-                DartboardView(geometry: geometry, dimsUnhighlighted: false, onTap: tap)
+                // Only the visible frame takes taps: the board, far larger than the frame, is not hit-testable (a
+                // clip does not limit hit testing, and the board would take the tap of the "×" above it).
+                DartboardView(geometry: geometry, dimsUnhighlighted: false)
                     .frame(width: side, height: side)
-                    .position(x: proxy.size.width / 2 + side / 2 - location.x, y: proxy.size.height / 2 + side / 2 - location.y)
+                    .position(x: frame.width / 2 + side / 2 - location.x, y: frame.height / 2 + side / 2 - location.y)
+                    .allowsHitTesting(false)
+                Color.clear
+                    .contentShape(Rectangle())
+                    .gesture(SpatialTapGesture(coordinateSpace: .local).onEnded { value in
+                        tap(PlayCorrectionModel.boardTap(at: value.location, frame: frame, tipLocation: location,
+                                                         boardSide: side, geometry: geometry))
+                    })
             }
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
             L10n.text("correction.hint.board", .game)

@@ -45,8 +45,8 @@ private final class SmokeInputSource: DartInputSource {
 }
 
 /// Smoke tests of lot F0 on the DartUI skeleton (ARCHITECTURE.md §8.4, §13.2): what is complete from the first
-/// day answers without trapping. Bodies marked `unimplemented()` are not called here: lots U1 to U3 write them.
-/// Everything asserted here stays true afterwards.
+/// day answers without trapping. The bodies that lots U1 to U3 wrote later are not called here: everything
+/// asserted here stays true after them.
 @MainActor
 @Suite struct SmokeTests {
     private func storage() -> DartUI.AppStorage {

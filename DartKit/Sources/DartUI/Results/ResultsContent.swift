@@ -12,12 +12,39 @@ struct ResultsContent: View {
     var rematch: () -> Void = {}
     var changeGame: () -> Void = {}
     var undo: () -> Void = {}
+    /// The app scrolls the context row, the headline and the ranking, the two buttons staying pinned under them:
+    /// 8 players on an iPhone, or any game on an iPhone in landscape, are taller than the screen. SnapshotTool
+    /// cannot render a scroll view (§8.11).
+    var scrolls = false
 
     @Environment(\.appLanguage) private var language
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         let metrics = Theme.Metrics(sizeClass)
+        VStack(spacing: 0) {
+            if scrolls {
+                ScrollView { summary(metrics) }
+                    .scrollIndicators(.hidden)
+                    .scrollBounceBehavior(.basedOnSize)
+            } else {
+                summary(metrics)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            }
+            VStack(spacing: 10) {
+                PrimaryButton(L10n.text("results.rematch", .game), action: rematch)
+                SecondaryButton(L10n.text("results.changeGame", .game), action: changeGame)
+            }
+            .padding(.horizontal, metrics.screenMargin)
+            .padding(.top, 20)
+            .padding(.bottom, Theme.Spacing.section)
+        }
+        .frame(maxWidth: sizeClass == .regular ? 640 : .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity)
+    }
+
+    /// The context row with undo, the headline and the ranking.
+    private func summary(_ metrics: Theme.Metrics) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .center) {
                 Text(verbatim: context)
@@ -44,16 +71,10 @@ struct ResultsContent: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(L10n.text("results.ranking", .game))
-            Spacer(minLength: 0)
-            VStack(spacing: 10) {
-                PrimaryButton(L10n.text("results.rematch", .game), action: rematch)
-                SecondaryButton(L10n.text("results.changeGame", .game), action: changeGame)
-            }
         }
         .padding(.horizontal, metrics.screenMargin)
-        .padding(.vertical, Theme.Spacing.section)
-        .frame(maxWidth: sizeClass == .regular ? 640 : .infinity, maxHeight: .infinity, alignment: .top)
-        .frame(maxWidth: .infinity)
+        .padding(.top, Theme.Spacing.section)
+        .padding(.bottom, 20)
     }
 
     /// "Killer · Facile · 9 manches".

@@ -1,3 +1,5 @@
-// Shared build settings. Config/Local.xcconfig is optional and git-ignored:
+// Shared build settings. Config/Local.xcconfig is optional and git-ignored; for a device it holds:
 //   DEVELOPMENT_TEAM = ABCDE12345
+//   DART_SCANNER_BUNDLE_ID = fr.yourname.dartscanner
+DART_SCANNER_BUNDLE_ID = com.example.dartscanner
 #include? "Local.xcconfig"

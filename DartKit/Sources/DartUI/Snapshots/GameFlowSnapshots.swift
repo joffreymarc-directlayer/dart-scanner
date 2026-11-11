@@ -16,16 +16,16 @@ extension SnapshotCatalog {
                 Frame.setup(Fixtures.setup(.killer, players: 4, options: ["level": "easy"]), device)
             },
             // The same screen at seven players: "Facile" is greyed with its note, "Intermédiaire" chosen.
-            SnapshotScreen(id: "setup-killer-seven") { device in
+            SnapshotScreen(id: "setup-killer-seven", devices: pads) { device in
                 Frame.setup(Fixtures.setup(.killer, players: 7, options: ["level": "easy"]), device)
             },
             SnapshotScreen(id: "setup-killer-levels", devices: pads) { device in
                 Frame.levels(Fixtures.setup(.killer, players: 4), device)
             },
-            SnapshotScreen(id: "setup-x01") { device in
+            SnapshotScreen(id: "setup-x01", devices: pads) { device in
                 Frame.setup(Fixtures.setup(.x01, players: 2), device)
             },
-            SnapshotScreen(id: "players") { device in
+            SnapshotScreen(id: "players", devices: pads) { device in
                 Frame.framed(PlayersContent(players: Fixtures.players(4)), device)
             },
             SnapshotScreen(id: "play-killer", devices: SnapshotDevice.allCases) { device in
@@ -34,36 +34,55 @@ extension SnapshotCatalog {
             SnapshotScreen(id: "play-x01", devices: pads) { device in
                 Frame.play(Fixtures.x01InRound6(), status: .live, device: device)
             },
-            SnapshotScreen(id: "play-cricket") { device in
+            SnapshotScreen(id: "play-cricket", devices: pads) { device in
                 Frame.play(Fixtures.cricketInRound3(), status: .manualOnly, device: device)
             },
-            SnapshotScreen(id: "play-highscore") { device in
+            SnapshotScreen(id: "play-highscore", devices: pads) { device in
                 Frame.play(Fixtures.highScoreInRound3(), status: .manualOnly, device: device)
             },
-            SnapshotScreen(id: "play-beertap") { device in
+            SnapshotScreen(id: "play-beertap", devices: pads) { device in
                 Frame.play(Fixtures.beerTapInRound2(), status: .manualOnly, device: device)
             },
-            SnapshotScreen(id: "play-football") { device in
+            SnapshotScreen(id: "play-football", devices: pads) { device in
                 Frame.play(Fixtures.footballInRound2(), status: .manualOnly, device: device)
             },
             SnapshotScreen(id: "play-radar", devices: pads) { device in
                 Frame.play(Fixtures.radarInRound1(), status: .manualOnly, device: device)
             },
-            SnapshotScreen(id: "play-golf") { device in
+            SnapshotScreen(id: "play-golf", devices: pads) { device in
                 Frame.play(Fixtures.golfOnHole4(), status: .manualOnly, device: device)
             },
+            // Lot I1: the six games that had no play snapshot, each played by its engine.
+            SnapshotScreen(id: "play-shanghai", devices: pads) { device in
+                Frame.play(Fixtures.shanghaiInRound4(), status: .manualOnly, device: device)
+            },
+            SnapshotScreen(id: "play-moonlanding", devices: pads) { device in
+                Frame.play(Fixtures.moonLandingInRound3(), status: .manualOnly, device: device)
+            },
+            SnapshotScreen(id: "play-fight", devices: pads) { device in
+                Frame.play(Fixtures.fightInRound2(), status: .manualOnly, device: device)
+            },
+            SnapshotScreen(id: "play-conqueror", devices: pads) { device in
+                Frame.play(Fixtures.conquerorInRound2(), status: .manualOnly, device: device)
+            },
+            SnapshotScreen(id: "play-aroundtheclock", devices: pads) { device in
+                Frame.play(Fixtures.aroundTheClockInRound3(), status: .manualOnly, device: device)
+            },
+            SnapshotScreen(id: "play-halveit", devices: pads) { device in
+                Frame.play(Fixtures.halveItInRound3(), status: .manualOnly, device: device)
+            },
             // A dart waiting for an answer and the question of a short turn.
-            SnapshotScreen(id: "play-prompts") { device in
+            SnapshotScreen(id: "play-prompts", devices: pads) { device in
                 Frame.play(Fixtures.highScoreInRound3(), status: .needsEmptyBoard, pending: [.single(7)],
                            prompt: .confirmShortTurn, device: device)
             },
-            SnapshotScreen(id: "correction") { device in
+            SnapshotScreen(id: "correction", devices: pads) { device in
                 Frame.framed(PlayCorrectionContent(model: Fixtures.correction), device)
             },
             SnapshotScreen(id: "results", devices: pads) { device in
                 Frame.results(Fixtures.killerFinished(), device)
             },
-            SnapshotScreen(id: "results-football") { device in
+            SnapshotScreen(id: "results-football", devices: pads) { device in
                 Frame.results(Fixtures.footballFinished(), device)
             },
             SnapshotScreen(id: "settings", devices: [.phonePortrait, .padPortrait]) { device in

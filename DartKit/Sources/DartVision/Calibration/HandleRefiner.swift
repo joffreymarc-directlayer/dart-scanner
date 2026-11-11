@@ -60,6 +60,27 @@ enum HandleRefiner {
                           medianAbsolute: median)
     }
 
+    /// Inliers of each family of samples over all the samples of that family (measured or not): rings, then wires.
+    ///
+    /// Review RV2: only the radial wires see a turn of the board about its centre (a ring is round), and a wire
+    /// sample whose wire left its ±4 mm window is not measured at all. Counted among the measured samples only, a
+    /// board turned by 3 to 9 degrees on its bracket kept every ring sample as an inlier and passed the drift check.
+    static func familyInlierFractions(of measurement: EdgeSampler.Measurement, imageToBoard: Homography,
+                                      radii: RingRadii, parameters: CalibrationParameters) -> (rings: Double, wires: Double) {
+        var totals = (rings: 0, wires: 0), inliers = (rings: 0, wires: 0)
+        for sample in EdgeSampler.samples {
+            if case .ring = sample.kind { totals.rings += 1 } else { totals.wires += 1 }
+        }
+        for observation in measurement.observations {
+            let sample = EdgeSampler.samples[observation.sample]
+            let residual = abs(sample.residual(of: imageToBoard.apply(observation.point), radii: radii))
+            guard residual.isFinite, residual < parameters.inlierDistance else { continue }
+            if case .ring = sample.kind { inliers.rings += 1 } else { inliers.wires += 1 }
+        }
+        return (totals.rings > 0 ? Double(inliers.rings) / Double(totals.rings) : 0,
+                totals.wires > 0 ? Double(inliers.wires) / Double(totals.wires) : 0)
+    }
+
     /// Huber weight with a hard cutoff: 1 up to `huberK`, `huberK / |r|` up to `outlierCutoff`, 0 beyond.
     static func weight(of residual: Double, parameters: CalibrationParameters) -> Double {
         let magnitude = abs(residual)

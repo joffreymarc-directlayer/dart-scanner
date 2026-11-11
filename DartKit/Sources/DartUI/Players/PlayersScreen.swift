@@ -185,15 +185,18 @@ struct PlayersContent: View {
 
     private func iconButton(_ symbol: String, label: LocalizedStringKey, isEnabled: Bool = true,
                             tint: Color = Theme.Palette.textSecondary, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(Theme.Typography.controlSymbol)
-                .foregroundStyle(isEnabled ? tint : Theme.Palette.textTertiary)
-                .frame(width: 36, height: Theme.Control.touchTarget)
-                .contentShape(Rectangle())
+        // 36 pt in the row, 44 pt to the finger (DESIGN.md §1).
+        PlayTouchTarget(width: 36, height: Theme.Control.touchTarget) {
+            Button(action: action) {
+                Image(systemName: symbol)
+                    .font(Theme.Typography.controlSymbol)
+                    .foregroundStyle(isEnabled ? tint : Theme.Palette.textTertiary)
+                    .frame(width: Theme.Control.touchTarget, height: Theme.Control.touchTarget)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(DesignRowButtonStyle())
+            .disabled(!isEnabled)
+            .accessibilityLabel(L10n.text(label, .game))
         }
-        .buttonStyle(DesignRowButtonStyle())
-        .disabled(!isEnabled)
-        .accessibilityLabel(L10n.text(label, .game))
     }
 }

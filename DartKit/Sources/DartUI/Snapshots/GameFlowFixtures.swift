@@ -147,6 +147,90 @@ enum GameFlowFixtures {
         return match
     }
 
+    // MARK: The six other games (lot I1)
+
+    /// Shanghai, three players, round 4 (number 4): Léa has thrown S4 and T4.
+    static func shanghaiInRound4() -> GameMatch? {
+        guard var match = match(.shanghai, players: 3) else { return nil }
+        play("""
+             S1, D1, MISS | T1, MISS, MISS | S1, S1, S1 |
+             S2, S2, MISS | D2, D2, S5 | T2, MISS, MISS |
+             T3, S3, MISS | S3, MISS, MISS | D3, MISS, S3 |
+             S4, T4
+             """, on: &match)
+        return match
+    }
+
+    /// Moon Landing (Débutant, 200), three players, round 3: Léa has thrown S20.
+    static func moonLandingInRound3() -> GameMatch? {
+        guard var match = match(.moonLanding, players: 3) else { return nil }
+        play("""
+             T20, S20, S5 | S19, S7, T19 | S1, S5, S20 |
+             S20, S20, S5 | T20, MISS, S12 | D20, S18, S1 |
+             S20
+             """, on: &match)
+        return match
+    }
+
+    /// Fight, three players, nine lives, round 2: Léa heals on her number after a round of blows. The numbers
+    /// come from the seed, so the script reads them from the facts.
+    static func fightInRound2() -> GameMatch? {
+        guard var match = match(.fight, players: 3, seed: 7) else { return nil }
+        func number(_ player: Int, _ name: String) -> [Int] {
+            switch match.snapshot.players[player].facts[name] {
+            case .int(let value)?: return [value]
+            case .ints(let values)?: return values
+            default: return [1, 1]
+            }
+        }
+        let heal = (0..<3).map { number($0, "healNumber")[0] }
+        let weak = (0..<3).map { number($0, "weakNumbers") }
+        play("""
+             D\(weak[1][0]), S\(weak[2][1]), MISS | T\(weak[0][0]), S\(heal[1]), MISS | S\(weak[1][1]), S\(weak[0][1]), MISS |
+             S\(heal[0])
+             """, on: &match)
+        return match
+    }
+
+    /// Conqueror, four players, round 2: every player has grown from its home; Tom took the bull, then Léa took
+    /// it back and attacks Tom's home. The homes come from the seed, so the script reads them from the facts.
+    static func conquerorInRound2() -> GameMatch? {
+        guard var match = match(.conqueror, players: 4, seed: 3) else { return nil }
+        let homes = (0..<4).map { player -> Int in
+            if case .int(let home)? = match.snapshot.players[player].facts["homeSector"] { return home }
+            return 1
+        }
+        let next = homes.map { BoardGeometry.standard.neighbours(of: $0).clockwise }
+        let previous = homes.map { BoardGeometry.standard.neighbours(of: $0).anticlockwise }
+        play("""
+             S\(next[0]), S\(next[0]), MISS | S\(next[1]), SB, MISS | S\(next[2]), S\(previous[2]), MISS | S\(previous[3]), MISS, MISS |
+             DB, S\(homes[1])
+             """, on: &match)
+        return match
+    }
+
+    /// Around the Clock, three players, round 3: Léa is on the 6 after S6.
+    static func aroundTheClockInRound3() -> GameMatch? {
+        guard var match = match(.aroundTheClock, players: 3) else { return nil }
+        play("""
+             S1, S2, MISS | S1, MISS, MISS | S1, S2, S3 |
+             S3, S4, S5 | S2, S3, MISS | S4, MISS, S5 |
+             S6
+             """, on: &match)
+        return match
+    }
+
+    /// Halve-It, three players, default targets, round 3 (D7): Léa has hit D7; Tom was halved in round 1.
+    static func halveItInRound3() -> GameMatch? {
+        guard var match = match(.halveIt, players: 3) else { return nil }
+        play("""
+             S20, T20, MISS | MISS, MISS, MISS | S20, S20, S20 |
+             S16, MISS, MISS | D16, MISS, MISS | MISS, MISS, MISS |
+             D7
+             """, on: &match)
+        return match
+    }
+
     /// Killer Facile at four, finished in round 3: Léa wins with 2 lives, then Inès, Tom and Marc.
     static func killerFinished() -> GameMatch? {
         guard var match = match(.killer, ["level": "easy"], players: 4, seed: killerSeed) else { return nil }

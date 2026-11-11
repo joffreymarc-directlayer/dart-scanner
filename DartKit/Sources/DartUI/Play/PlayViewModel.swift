@@ -140,6 +140,9 @@ final class PlayViewModel: Identifiable {
             play(.dartIgnored)
             return
         }
+        // The player throws again instead of answering "Volée incomplète : passer au joueur suivant ?": the turn
+        // changed, the question no longer applies (it would stay on a full turn, or while a dart waits).
+        if prompt == .confirmShortTurn { prompt = nil }
         // 2. Behind an undecided dart: queued, the order of the darts is kept.
         guard pending.isEmpty else {
             pending.append(proposal)

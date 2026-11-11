@@ -23,6 +23,12 @@ Précisions et corrections apportées à l'intégration de la vague 2 (lots V2 e
 - lot V3 : `tipCapCorrection` vaut 1,1 mm et non 0,8 (5.2 D8, 5.3, 9.2, 11) ; la postérieure lit quatre points par case (7.2, 9.2) ; épluchage à plusieurs départs (D5), largeur de bout sur la plus large suite de 3 tranches (D6), largeur de la pointe à mi-hauteur du pic (D9), et trois gardes ajoutées (D9) ; `TrustTracker.shouldSuggestLightingCheck` est interne (7.6) ;
 - revue des lots V1 et V4 : la ligne A14 demande un contrôle de dérive quand la nouvelle référence vide ne vient pas d'un épisode (6.3) ; ce que `beginVisit` fait pendant un retrait, et `setCalibration` garde les compteurs de volée (6.3, 6.5).
 
+Précisions et corrections apportées à l'intégration de la vague 3 (lot V5 livré, revue des lots V2 et V3 notée RV2). Aucune signature de l'API publique ne change (9.2) ; deux règles de comportement changent, chacune après une erreur reproduite par un test (4.9, D9) :
+
+- lot V5 : la porte compare chaque pixel à l'étendue 3×3 de sa référence (6.1, X10) ; un `lightingChange` qui suit un épisode d'au moins deux images de mouvement, ou parti d'`obstructed`, est lu comme une obstruction (5.2 D4, X3) ; un recalage garde la région de la porte et efface sa référence, et le centre optique déplacé de plus de 30 mm reprend `R` sans analyse (4.9) ; K2 après un seul choc (6.3) ; ce que `ScanSession` fait de ses flux, de ses commandes, de la chaleur et des images figées, ce que `recordFeedback` fait des conseils et ce qu'un changement de `configuration` fait au réducteur (6.5) ; deux points de 2.4 sans définition testable, et la source de démonstration du Simulateur (2.4) ; mesures de X13, X10 et P2 (10.2) ; limite du rejeu (10.3) ;
+- revue du lot V2 : `healthy` demande aussi que les fils s'accordent au moins moitié aussi bien que les anneaux : un plateau tourné sur son support était déclaré sain (4.9) ;
+- revue du lot V3 : `implausiblyLong` couvre aussi un bout plus sombre que le modèle d'ombre (D9) ; une pointe non finie est basse, et `collapsed` d'une observation fabriquée garde le plafond des drapeaux (7.4) ; T7 compte les fausses parmi les hautes (10.2) ; images en miroir, ombres longues, fléchettes croisées (11.1).
+
 - Les identifiants, noms de paramètres et commentaires de code sont en anglais et font foi tels quels. L'API de la section 9 a été vérifiée par le compilateur (iOS 17 et macOS 14, mode Swift 5, contrôle de concurrence complet) avec des corps vides.
 - « DOIT » / « NE DOIT PAS » marquent une exigence testable.
 - Provenance des chiffres :
@@ -181,8 +187,9 @@ Dès que quatre poignées existent (posées par la localisation automatique ou p
 - À l'armement : 1,5 s de convergence automatique, puis verrouillage de la mise au point, de la balance des blancs et de l'exposition.
   - Durée d'exposition 1/100 s (secteur 50 Hz) ou 1/120 s (60 Hz), choisie d'après la région de l'appareil ; ISO recalculé pour garder la luminosité. Si l'ISO dépasse le maximum du format : 1/50 ou 1/60 s.
   - Vérification : si la luminosité moyenne de la porte ondule de plus de 1 % sur 30 images, essayer l'autre fréquence, puis émettre `advisory(.flicker)`.
+  - *Réalisation (lot V5) :* l'ondulation de plus de 1 % autour de sa tendance, pendant l'armement, émet `advisory(.flicker)` ; l'essai de l'autre fréquence n'est pas fait. `advisory(.lowLight)` n'est jamais émis : aucune condition n'en est donnée, et le repli à 1/50 ou 1/60 s se fait sans bruit dans `CameraFrameSource`. `FrameSourceInfo.intrinsics` vient du champ de vision du format actif (aucune sur macOS), pas de la matrice livrée avec chaque image, dont le repère n'a pas pu être vérifié sans appareil.
 - `DartUI` désactive la mise en veille. `ScanSession` observe `ProcessInfo.thermalState` : à `.serious` une image sur deux est traitée et `advisory(.thermalThrottling)` est émis ; à `.critical` la session envoie `pause(.thermal)` et l'interface propose le mode « Scanner la volée ».
-- Tout ce qui précède est derrière `#if os(iOS)`. Sur macOS la même classe compile comme une simple source webcam. Dans le Simulateur (pas de caméra) l'application utilise `SyntheticFrameSource`.
+- Tout ce qui précède est derrière `#if os(iOS)`. Sur macOS la même classe compile comme une simple source webcam. Dans le Simulateur (pas de caméra), l'application utilise une source de démonstration de `DartUI` (`CameraDemoFrameSource`, lot U3) : deux rendus de la cible vide par `SyntheticScene`, en boucle, à 10 images/s. Une `SyntheticFrameSource` joue un script fini et laisserait la session sans images.
 
 ---
 
@@ -485,7 +492,7 @@ Pour cette vérification, l'interface arme la vision (`arm`) le temps de voir la
 
 | Statut | Condition | Suite |
 |---|---|---|
-| `healthy` | médiane ≤ 0,5 mm et conformes ≥ 0,6 (≥ 0,5 avec des fléchettes sur la cible) | rien |
+| `healthy` | médiane ≤ 0,5 mm et conformes ≥ 0,6 (≥ 0,5 avec des fléchettes sur la cible), **et** fraction de fils conformes ≥ la moitié de la fraction d'anneaux conformes, chaque famille comptée sur **tous** ses échantillons (200 de fils, 188 d'anneaux) | rien |
 | `drifted` | pas sain, mais `recover` (C3 depuis les poignées courantes, borne de 6 mm) passe la garde | adopter le nouveau calibrage, émettre `calibrationAdjusted` |
 | `lost` | ni l'un ni l'autre | localisation automatique si elle est fournie, sinon `calibrationLost` |
 | `edgesNotVisible` | moins de 30 % d'échantillons mesurables (main, obscurité, cible aux couleurs inhabituelles) | continuer avec le calibrage courant |
@@ -495,6 +502,14 @@ Pour cette vérification, l'interface arme la vision (`arm`) le temps de voir la
 - Le contrôle a lieu sur la 2e image calme de chaque épisode, **avant** l'accumulation (section 6.3, ligne 5), à chaque nouvelle référence vide, et après 2 s d'obstruction immobile. En déclenchement manuel, il a lieu de la même façon à chaque pose de capture.
 - **Les références survivent à un recalage** : elles sont dans l'espace de la cible et le plan de la cible se recale exactement par la nouvelle `H`. Deux précautions : les silhouettes des fléchettes déjà plantées sont dilatées de 3 mm de plus (leur parallaxe a changé) et les fléchettes de cet événement portent `afterRelock`. Si le centre optique a bougé de plus de 30 mm, la référence courante est reprise sur l'image posée et aucune fléchette n'est cherchée dans cet événement.
 - Après `calibrationLost`, la partie continue en saisie manuelle ; le moteur retente un recalage à chaque seconde calme.
+
+*Revue du lot V2 (vague 3) :* sans la condition sur les fils, un plateau tourné sur son support après le calibrage était déclaré sain. Une rotation autour du centre ne déplace que les fils radiaux (les anneaux sont ronds), et un échantillon de fil sorti de sa fenêtre de ±4 mm n'est simplement pas mesuré : la fraction de conformes **parmi les mesurés** restait haute (pose B, rotations de ±3° à ±9° saines ; à 9° : conformes 1,0, médiane 0,026 mm). La limite est d'environ 0,5°, soit 1,5 mm au double. Au-delà d'environ 2° (6 mm au double), la portée de `recover` est dépassée : le plateau tourné est `lost`, puis localisé automatiquement ou `calibrationLost`. Une image de calibrage revalidée au lancement (4.10) suit la même règle.
+
+*Réalisation (lot V5) :*
+
+- « redresseur et porte reconstruits » (ligne K1) n'est pas appliqué à la lettre : une porte reconstruite sur la nouvelle position de la cible ne voyait plus de changement durable, la ligne 7 sautait l'analyse et `possibleMiss` suivait chaque choc. Un recalage (K1, A13) garde la région de la porte et efface sa référence, pour que la pose soit analysée ; une issue « aucun changement » juste après un recalage est traitée comme `foreignRemoval` (`R := S`, pas de `possibleMiss`). Un recalage par K3 reconstruit et relance la porte ;
+- centre optique déplacé de plus de 30 mm : aucune `SettleOutcome` ne dit « reprendre `R` sans rien chercher ». Le moteur fait lui-même `R := S` et donne au réducteur `foreignRemoval` (épisode) ou `noChange` (reprise, capture) ;
+- la table dit « `lost` → localisation automatique » ; c'est la ligne K3 qui est suivie : la localisation n'est essayée qu'en `calibrationLost`, seul chemin qui émet `calibrationRecovered` (X9).
 
 ### 4.10 Persistance
 
@@ -581,6 +596,8 @@ Union-find en deux passes, 8-connexité. Écarter les composantes de moins de 15
 
 **Garde-fantôme.** Un candidat doit aussi différer du plateau vide : au moins 50 % de ses pixels vérifient `e(E, S) ≥ τ`. Sinon quelque chose a *quitté* la cible (par exemple une fléchette restée dans `R` par erreur) : aucun événement de fléchette. Sans `E` fraîche, le test est sauté et le candidat porte `emptyReferenceStale`.
 
+*Réalisation (lot V5) :* dans cet ordre, une main qui couvre un tiers de la cible (celle de X3, 10 % du champ) est un `lightingChange`, que la ligne A14 absorbait dans `R` : le retrait finissait en `dartRemoved(.fellOut)`, en fléchette fantôme et en second `lightingChanged`. Le détecteur garde l'ordre du tableau ; le **moteur** lit un `lightingChange` comme `obstruction` quand l'épisode compte au moins deux images de mouvement ou part d'`obstructed`. Un saut de lumière tient en une image et une rampe lente ne fait pas d'épisode : X5 (gain × 1,3, moitié de la cible éclaircie) donne toujours `lightingChanged`.
+
 #### D5. Regroupement et axe — une droite robuste sur tous les pixels nouveaux
 
 Tous les pixels restants, en millimètres, entrent dans **un seul** ajustement. Choisir la plus grande composante échoue [sonde : une tige noire sur un secteur noir sépare l'empennage du fût].
@@ -635,7 +652,7 @@ Les derniers millimètres d'une pointe sont fins et peu contrastés : on utilise
 |---|---|---|
 | `pointNotVisible` | largeur moyenne des 6 derniers mm avant la pointe > 4 mm | pointe noire sur noir ; fléchette vue en bout ; pointe cachée |
 | `lowTipContrast` | médiane de `P` sur les 3 derniers mm < 1,5·τ | visibilité limite |
-| `implausiblyLong` | longueur visible > `‖X̂ − F‖·L/(D − L) + L·tan 20°·D/(D − L)`, `L = 170` mm | ombre prise pour la fléchette ; deux objets alignés |
+| `implausiblyLong` | longueur visible > `‖X̂ − F‖·L/(D − L) + L·tan 20°·D/(D − L)`, `L = 170` mm ; **ou** bout de la marche plus sombre que le modèle d'ombre (`α* < α_lo·g`) sur au moins 0,75 mm, la partie colorée de la fléchette commençant dans les 40 % de la silhouette côté pointe | ombre prise pour la fléchette ; deux objets alignés ; ombre dure au-delà de la pointe |
 | `lowElongation` | longueur < 25 mm ou `λ1/λ2 < 4` | fléchette vue en bout ; objet qui n'est pas une fléchette |
 | `tipPossiblyOccluded` | le point à 2 mm au-delà de `X̂`, vers la pointe, est dans une silhouette connue, ou la marche s'y est arrêtée | pointe derrière une fléchette antérieure |
 | `earlierDartDisturbed` | une fléchette connue est changée de 15 à 50 % | déviation |
@@ -643,6 +660,8 @@ Les derniers millimètres d'une pointe sont fins et peu contrastés : on utilise
 | `clutter`, `fewNarrowPixels`, `tipEndAmbiguous`, `nearEndWide` | voir D5 à D7 | — |
 
 *Réalisation (lot V3) :* la largeur de `pointNotVisible` se mesure sur le cœur à mi-hauteur du pic de preuve de chaque tranche ; la largeur du masque d'une pointe d'acier de 2,3 mm varie de 2,0 à 4,6 mm selon l'orientation, et le test à la lettre signalait 84 pointes visibles sur 200. Trois gardes ajoutées, chacune après une erreur confiante mesurée : une pointe camouflée lève `lowTipContrast` avec un `occlusionSpan` non nul ; un bout terne qui ne fait qu'assombrir lève `implausiblyLong` ; des pixels côté pointe qui touchent une silhouette connue lèvent `tipPossiblyOccluded`. Le détecteur lève `multiDartStill` quand `maxNewDarts > 1`, `emptyReferenceStale` sans référence vide, `earlierDartDisturbed` quand une fléchette connue est retirée ou dérangée ; il ne lève jamais `beyondVisitLimit`, `afterRelock`, `warmUp`, `calibrationFair`, `calibrationPoor` ni `crossViewpoint`, que le moteur (V5) et `ConfidenceModel` ajoutent.
+
+*Revue du lot V3 (vague 3) :* la seconde condition de `implausiblyLong` est neuve. La garde « bout terne » ne jouait que sous `lowTipContrast`, alors qu'une ombre de 0,20 garde tout son contraste sur crème, rouge, vert ou un fil : la marche finissait sur l'ombre de la pointe, ou sur un morceau d'ombre détaché dans l'axe, à confiance haute (graines de V3, ombre 0,20 : 3 hautes fausses sur 12 ; poses A à D, lampe opposée à la caméra : 5 sur 18, de 2 à 43 mm). Une pointe d'acier montre sa couleur tout de suite et une fléchette toute noire ne montre de couleur qu'à son empennage : ni l'une ni l'autre n'est signalée. Le drapeau ne déplace jamais une pointe (facteur 0,4, palier bas) ; après la correction, aucune haute fausse sur les graines de V3 ni sur cinq des six scènes d'ombre de la revue. Conséquence : une pointe noire sur un fût coloré passe aussi au palier bas, et sous une ombre de 0,20, 98 % des fléchettes sont basses. Une ombre plus longue que 40 % de la silhouette échappe encore à la garde (11.1).
 
 #### D10. Sortie — `DartCandidate`
 
@@ -727,6 +746,11 @@ Image de porte : la boîte englobante de la région d'intérêt dans l'image sou
 Ordres de grandeur [estimation] : une fléchette ≈ 0,5 à 0,7 % de la porte ; une main et un avant-bras ≈ 10 à 15 %. L'impact fait vibrer toute la cible pendant quelques images : l'amplitude du mouvement ne distingue donc pas un lancer d'une main, sa **durée** et l'**entrée par le bord** le font.
 
 **Épisode** : de la première image en mouvement à la pose. Il est « de type main » si sa durée dépasse 0,6 s ou si `borderChange > 4 %` pendant au moins 5 images de suite ; sinon il est « de type lancer ». Un épisode parti de l'état `takeout` ou `obstructed` est toujours de type main (section 6.3).
+
+*Réalisation (lot V5) :*
+
+- la référence de la porte est mémorisée comme l'étendue (minimum, maximum) du voisinage 3×3 de chaque pixel, et un pixel n'est changé par rapport à elle que s'il en sort de plus de `T_g`. Appliqué à la lettre, un balancement lent de ±0,3 px à 1080p (facteur de bloc 2) déplaçait les bords de la cible de plus de 12 niveaux contre la référence, et le contrôle au repos se déclenchait toutes les 2 s (X10 : 8 cycles en 600 images ; plus aucun événement après). Un objet nouveau reste un changement ; un tremblement rapide de ±0,3 px compte encore comme mouvement, comme la vibration d'un impact ;
+- `borderChange` se mesure contre la référence, comme `changeVsReference` : après un saut de lumière, la bande du bord reste changée pendant la pose et l'épisode devient de type main. Un saut de −15 % est alors lu « aucun changement » (modèle d'ombre), sans événement ni nouvelle `R`, et le contrôle au repos l'absorbe 2 s plus tard ; un saut × 1,3 ne donne `lightingChanged` que par la saturation du crème.
 
 ### 6.2 Constantes (`ScanParameters`)
 
@@ -819,6 +843,8 @@ Latence : le mouvement est vu 33 ms après l'impact, la pose prend 200 ms, l'ana
 | K3 | `calibrationLost`, chaque seconde calme | — | `recover`, puis localisation automatique si un `BoardLocating` est fourni |
 | K4 | `calibrationLost`, récupération réussie | `arming`, puis l'état précédent | `calibrationRecovered` ; `R := S` ; `E` périmée si `n > 0` |
 | K5 | arêtes non mesurables | inchangé | on continue avec le calibrage courant |
+
+*Réalisation (lot V5) :* un choc unique ne fait qu'une pose perdue, et K2 en demande deux consécutives. Après un choc de 40 px, la première pose lit `lightingChange` (A14), absorbe la vue désalignée dans `R` et marque `E` périmée s'il y a des fléchettes ; `calibrationLost` ne vient qu'à la pose suivante, celle de la fléchette suivante, qui n'est pas signalée. X9 est écrit ainsi : le choc, puis la fléchette suivante.
 
 **Pause**
 
@@ -914,6 +940,15 @@ Ces règles laissent l'API de 9.2 telle quelle ; des effets explicites (« effac
 | `pause(raison)`, `resume` | lignes P1, P1b, P2, P2b, P2c et DM7 ; acceptées dans tout état. `resume` lève une pause du système (`.background`, `.thermal`) et jamais une pause de la couche jeu (`.user`), que seule `arm` lève |
 
 Une commande reçue dans un état où aucune ligne ne la prévoit est ignorée, sans événement. Seule exception : les commandes de compteur (`beginVisit`, `endVisit`, `discardDart`, `registerManualDart`) mettent toujours les compteurs à jour, y compris dans `idle`, `arming`, `paused` et `calibrationLost` ; seul leur changement d'état est alors omis.
+
+*Réalisation (lot V5) : `ScanSession` et `ScanEngine` vus de la couche jeu.*
+
+- **Flux.** Chaque lecture de `ScanSession.events` rend un flux neuf, qui reçoit tout ce qui est émis **à partir de cette lecture**, sans rejeu ; `stop()` ne le termine pas (il finit quand son lecteur l'annule, ou quand la session disparaît). Le lire avant d'envoyer des commandes, ou lire `currentState()`.
+- **Ordre.** `setCalibration`, `updateConfiguration`, `send` et `recordFeedback` s'appliquent un à un dans l'ordre des appels. `send(.arm)` sur une source `CameraControlling` attend d'abord 1,5 s de convergence puis verrouille mise au point, exposition et balance des blancs : une commande envoyée pendant ce temps (une pause du système, par exemple) passe après l'`arm`.
+- **Retour d'information.** `ScanEngine.recordFeedback(_:wasCorrected:)` ne rend rien : les conseils du `TrustTracker` (`accuracyDegraded`, `suggestLightingCheck`, `suggestScanMode`) mènent la liste suivante rendue par `process`, `handle` ou `setCalibration`. `ScanSession` les diffuse aussitôt après `recordFeedback`.
+- **Configuration.** Les constantes du réducteur sont fixées à sa création : changer `configuration.scan` reconstruit le réducteur depuis le calibrage courant, dans `idle` (ligne 1), en gardant le déclencheur, et il faut un nouvel `arm`. Changer les paramètres de détection, de confiance ou de calibrage ne relance rien. La couche jeu ne change donc les paramètres de scan qu'en dehors d'une partie.
+- **Images.** Le moteur ignore une image dont la taille diffère de `calibration.imageSize` : un changement d'orientation passe par une pause et un recalibrage (`ARCHITECTURE.md` §6.5). `captureStill` lève une erreur quand la session n'est pas démarrée, quand elle s'arrête pendant la capture, ou quand aucune image n'arrive en 5 s plus trois fois la durée demandée. À `ProcessInfo.ThermalState.critical`, la session envoie elle-même `pause(.thermal)`, puis `resume` une fois refroidie, si la machine est encore dans cette pause.
+- **Calibrages.** `calibrationRecovered` peut porter le même calibrage (redevenu sain pendant la perte) ; `calibrationAdjusted` en porte toujours un nouveau. Le plafond de rodage repart à chaque `setCalibration` d'un autre `id`, pour `configuration.confidence.warmUpDarts` fléchettes **lu à ce moment** : une configuration reçue ensuite ne le change pas, et la couche jeu envoie donc la configuration d'un calibrage avant lui (`ARCHITECTURE.md` §8.7). Réinstaller le même `id` après une vérification réussie le laisse levé. `runLightingCheck` adopte toujours `recommendedShadowLowerBound` dans la configuration du moteur ; la couche jeu l'enregistre depuis le résultat.
 
 ---
 
@@ -1013,7 +1048,8 @@ tier       = thresholds.tier(for: collapsed)
 - Avec un plafond actif, il est réappliqué : une fléchette plafonnée par ses drapeaux reste sous le palier haut même quand tous ses candidats se regroupent.
 - Pour une observation produite par `ConfidenceModel`, `collapsed ≥ confidence` : à seuils égaux, le regroupement ne fait jamais descendre un palier.
 - Un plafond passé par `ConfidenceContext.cap` sans drapeau correspondant n'est pas mémorisé dans l'observation et n'est donc pas réappliqué. Les trois plafonds de ce document ont chacun leur drapeau.
-- Si `candidates[0].probability` est nulle (observation fabriquée), `collapsed = confidence`.
+- Si `candidates[0].probability` est nulle (observation fabriquée), `collapsed = min(confidence, cap(flags))` : le plafond des drapeaux s'applique aussi dans ce cas (lot V3, confirmé par la revue).
+- Une pointe dont une coordonnée n'est pas finie donne `confidence = 0` et le palier bas (revue du lot V3 : elle devenait `MISS` à confiance 1, palier haut).
 
 Dans un jeu qui dépend de la position de l'impact (Radar, `GAMES.md` §2.13), la couche jeu ajoute un contrôle sur la pointe elle-même : elle rejoue la meilleure case aux quatre points `tip ± sigmaAlong·axis` et `tip ± sigmaAcross·normale`, et marque la fléchette « à vérifier » si l'effet change (`ARCHITECTURE.md` §8.4.8). `uncertainty` DOIT donc être renseignée pour toute observation, y compris fabriquée : des sigmas nuls désactivent ce contrôle.
 
@@ -2724,7 +2760,7 @@ Les parties de M3, M10 et M11 qui exerçaient le calibreur sont devenues C10, C1
 | T4 | Segment correct | ≥ 97 % à plus de 2 mm d'un fil ; ≥ 93 % au total |
 | T5 | Fléchette toute noire sur secteurs noirs | ≤ 1 % d'erreurs parmi les réponses hautes |
 | T6 | Deuxième fléchette dont la pointe est dans la bande cachée par la première | `tipPossiblyOccluded` et pas haute dans ≥ 90 % des cas |
-| T7 | Ombre 0,20 (hors modèle) | ≥ 90 % basses ; hautes et fausses ≤ 3 % |
+| T7 | Ombre 0,20 (hors modèle) | ≥ 90 % basses ; ≤ 1 % de fausses parmi les hautes |
 | T8 | Fléchettes tombantes (queue en bas de 0 à 18°) | ≥ 95 % de correctes parmi les hautes |
 
 **F — Confiance** (lot V3)
@@ -2803,9 +2839,21 @@ Les parties de M3, M10 et M11 qui exerçaient le calibreur sont devenues C10, C1
 
 *Réalisation (lots V2 et V3) :* à 1280×720 les poses de référence tombent à environ 0,67 px/mm, sous la garde de 0,8 px/mm : la suite lourde de C2 tourne en debug sur les mêmes poses en pleine résolution, avec 40 tirages au lieu de 200, et les suites T avec 200 fléchettes par scénario au lieu de 500. Les suites lourdes sont aussi `.serialized` : lancées en parallèle, leur travail synchrone affamait le test en temps réel de `SyntheticFrameSource`. En C2 avec σ = 2 px, la garde de 4 mm refuse environ 12 % des tirages de la pose B (1,1 px/mm) : 194 sur 200 passent sur les poses A à D (≥ 95 %), mais la pose B seule n'atteindrait pas 95 %. En T1/T4, la population est celle des pointes d'acier ; le mélange entier (40 % acier, 40 % laiton, 20 % tout noir) est rapporté.
 
+*Revue du lot V3 (vague 3) :* T7 disait « hautes et fausses ≤ 3 % » de toutes les fléchettes, ce qui tolérait qu'un quart des hautes soient fausses sous une ombre de 0,20 ; il compte désormais les fausses parmi les hautes, comme F2, T5 et T8. Les suites livrées n'en donnent aucune.
+
+*Réalisation (lot V5) :*
+
+- X13 « à 1,8 px/mm » se lit sur `calibration.quality.minPixelsPerMillimetre` : pose A en portrait, grand côté de 3456 px pour 1,8 px/mm et de 2304 px pour 1,2 px/mm. Les statistiques portent sur les fléchettes à pointe visible, comme T1 ; le mélange entier est rapporté. En debug, X13 garde ces caméras avec 8 fléchettes : à 1280×720, la garde du calibrage refuse les 0,67 px/mm ;
+- X10 modèle le tremblement comme un balancement lent (deux sinus de périodes 2,3 s et 3,7 s, 0,3 px au plus) ; un tremblement rapide aléatoire reste du mouvement (6.1) ;
+- X9 : voir la note de K2 (6.3) ;
+- P2 : le détecteur livré sépare bien deux fléchettes croisées (les deux à moins de 3 mm), et aucune n'est haute (`multiDartStill` plafonne une image figée à 0,7), mais il ne lève ni `clutter` ni `implausiblyLong` ; avec `maxDarts` 3 et deux fléchettes, il peut rendre un troisième candidat fantôme au croisement. L'attente reste écrite dans le test sous `withKnownIssue` (11.1) ;
+- les suites X portent `.heavy` et `.serialized` ; en debug elles rendent moins de fléchettes (X13 : 8 au lieu de 200 ; rapport de scénarios : pose B et une volée).
+
 ### 10.3 Rejeu d'enregistrements réels
 
 `DirectoryRecorder` écrit, par session : le calibrage, les événements, les échantillons de porte, les corrections du joueur et, pour chaque scène analysée, les canevas `R` et `S`. `RecordedSession.replay` repasse ces scènes dans un détecteur sur macOS. C'est **le seul moyen de régler les valeurs de départ** ; il fait partie du livrable, pas des extras. Les enregistrements réels restent hors du dépôt.
+
+*Réalisation (lot V5) :* `ScanRecording.record(reference:current:analysis:gate:at:)` ne reçoit ni `E`, ni les fléchettes connues, ni `maxNewDarts`. `RecordedSession.replay` rejoue donc sans référence vide (pas de garde-fantôme, `emptyReferenceStale` sur chaque candidat) et sans silhouettes connues : il redonne les pointes du direct à l'identique tant qu'aucune fléchette n'était connue (scène 1 identique, scène 2 à 0,5 mm près et mêmes cases). Un rejeu fidèle demandera d'ajouter la référence vide et les fléchettes connues à ce protocole, avant d'enregistrer de vraies sessions : c'est un changement d'API, laissé ouvert.
 
 ---
 
@@ -2830,6 +2878,10 @@ Les parties de M3, M10 et M11 qui exerçaient le calibreur sont devenues C10, C1
 15. **Les tests synthétiques peuvent flatter le détecteur** : reflets de l'acier, texture du sisal, ombres réelles ne sont qu'approchés.
 16. **La couche de capture n'a jamais tourné sur un appareil.** Xcode, le SDK iOS et XcodeGen sont installés sur cette machine et l'API compile pour iOS, mais le verrouillage de l'exposition, la livraison des intrinsèques, la rotation et le débit 4K restent à vérifier sur un iPhone et un iPad réels.
 17. **La paire de photos à main levée** est bruitée (parallaxe des fils, lumière, couronne des numéros) et pourrait ne servir qu'à pré-placer les pointes à toucher.
+18. **Images en miroir** (caméra frontale, photo importée retournée) : le motif de couleurs de la cible est symétrique, ni la localisation automatique ni C5 ne voient le miroir, et `reoriented(twentyAt:)` ne fait que tourner : le joueur ne peut pas corriger la numérotation. Les sources en miroir ne sont pas prises en charge.
+19. **Ombres dures longues.** La garde de D9 n'attrape pas une ombre plus longue que 40 % de la silhouette fléchette et ombre comprises : revue du lot V3, 1 fléchette sur 400 sous une lampe au plafond, fausse de 66 mm à confiance 1,0. Élargir la fenêtre à 50 % l'attraperait, au prix d'environ 1 % des fléchettes hautes nominales (fléchettes noires dont l'empennage commence tôt).
+20. **Fléchettes croisées sur une image figée** (« Scanner la volée ») : non signalées `clutter` ni `implausiblyLong` (P2), et un troisième candidat fantôme peut sortir du croisement, au palier moyen au plus.
+21. **Fléchette toute noire qui touche une fléchette déjà comptée**, sur secteur noir : seul l'empennage peut se voir ; la revue du lot V3 en a vu une lue comme une fléchette entière, `MISS` confiant à 67 mm de la vérité (1 haute sur 83). C'est un cas de la limite 5.
 
 ### 11.2 Paramètres à régler sur une vraie cible
 

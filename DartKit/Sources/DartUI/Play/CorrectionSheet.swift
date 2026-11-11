@@ -12,6 +12,8 @@ struct CorrectionSheet: View {
     @State private var choice: PlayCorrectionChoice?
     @State private var evidence: CGImage?
     @State private var reticle: CGSize = .zero
+    /// Where the reticle was left by the last drag: the next drag goes on from there.
+    @State private var reticleBase: CGSize = .zero
     @State private var rescoring = false
 
     init(game: PlayViewModel, target: CorrectionTarget) {
@@ -22,7 +24,7 @@ struct CorrectionSheet: View {
     var body: some View {
         Group {
             if let model {
-                PlayCorrectionContent(model: model, actions: actions(for: model))
+                PlayCorrectionContent(model: model, actions: actions(for: model), scrolls: true)
             } else {
                 // The dart is gone (undone meanwhile): nothing left to correct.
                 Color.clear.onAppear { close() }
@@ -46,10 +48,23 @@ struct CorrectionSheet: View {
     private func actions(for model: PlayCorrectionModel) -> PlayCorrectionActions {
         PlayCorrectionActions(
             close: close,
-            pick: { hit in choice = PlayCorrectionChoice(hit: hit, position: nil); reticle = .zero },
+            pick: { hit in
+                choice = PlayCorrectionChoice(hit: hit, position: nil)
+                reticle = .zero
+                reticleBase = .zero
+            },
             tapBoard: { tap in choice = PlayCorrectionChoice(hit: tap.hit, position: tap.position) },
-            moveReticle: { offset in reticle = offset },
-            dropReticle: { offset in rescore(model: model, offset: offset) },
+            moveReticle: { translation in reticle = PlayCorrectionModel.reticle(reticleBase, moved: translation) },
+            dropReticle: { translation, side in
+                reticleBase = PlayCorrectionModel.reticle(reticleBase, moved: translation)
+                reticle = reticleBase
+                rescore(model: model, offset: reticleBase, drawnSide: side)
+            },
+            placeReticle: { offset, side in
+                reticleBase = offset
+                reticle = offset
+                rescore(model: model, offset: offset, drawnSide: side)
+            },
             miss: { apply(PlayCorrectionChoice(hit: .miss, position: nil)) },
             remove: remove,
             confirm: { apply(choice ?? PlayCorrectionChoice(hit: model.detected, position: nil, keepsPosition: true)) })
@@ -92,13 +107,11 @@ struct CorrectionSheet: View {
         close()
     }
 
-    /// The tip moved on the evidence image: the source scores the dart again from there (§8.6). 600 px for 50 mm:
-    /// a move of (dx, dy) image pixels gives the tip (x + dx / 12, y − dy / 12).
-    private func rescore(model: PlayCorrectionModel, offset: CGSize) {
+    /// The tip moved on the evidence image: the source scores the dart again from there (§8.6). `offset` is the
+    /// whole move of the reticle from the detected tip, in points of an image drawn `drawnSide` points wide.
+    private func rescore(model: PlayCorrectionModel, offset: CGSize, drawnSide: CGFloat) {
         guard let id = model.dartID, let image = model.evidence, let tip = model.tip, !rescoring else { return }
-        let pixelsPerPoint = CGFloat(image.width) / PlayCorrectionContent.evidenceSide
-        let moved = BoardPoint(x: tip.x + Double(offset.width * pixelsPerPoint) / 12,
-                               y: tip.y - Double(offset.height * pixelsPerPoint) / 12)
+        let moved = PlayCorrectionModel.movedTip(tip, by: offset, imageWidth: image.width, drawnSide: drawnSide)
         rescoring = true
         Task { @MainActor in
             defer { rescoring = false }
@@ -158,6 +171,30 @@ struct PlayCorrectionModel {
         self.highlights = highlights
     }
 
+    /// The tip under the reticle (§8.6): the evidence image is 600 px for 50 mm, 12 px per millimetre, centred on
+    /// the detected tip, and drawn `drawnSide` points wide; a move of (dx, dy) image pixels gives the tip
+    /// (x + dx / 12, y − dy / 12).
+    static func movedTip(_ tip: BoardPoint, by offset: CGSize, imageWidth: Int, drawnSide: CGFloat) -> BoardPoint {
+        guard drawnSide > 0 else { return tip }
+        let pixelsPerPoint = CGFloat(imageWidth) / drawnSide
+        return BoardPoint(x: tip.x + Double(offset.width * pixelsPerPoint) / 12,
+                          y: tip.y - Double(offset.height * pixelsPerPoint) / 12)
+    }
+
+    /// The reticle after a drag of `translation` that started where the previous drag left it.
+    static func reticle(_ base: CGSize, moved translation: CGSize) -> CGSize {
+        CGSize(width: base.width + translation.width, height: base.height + translation.height)
+    }
+
+    /// A tap at `location` of a magnifier frame of `frame` points showing the board drawn `boardSide` points
+    /// wide, the point `tipLocation` of that board in the middle of the frame.
+    @MainActor
+    static func boardTap(at location: CGPoint, frame: CGSize, tipLocation: CGPoint, boardSide: CGFloat,
+                         geometry: BoardGeometry) -> BoardTap {
+        let onBoard = CGPoint(x: location.x - frame.width / 2 + tipLocation.x, y: location.y - frame.height / 2 + tipLocation.y)
+        return DartboardView.tap(at: onBoard, in: CGSize(width: boardSide, height: boardSide), geometry: geometry)
+    }
+
     /// The model of a target of a running game; nil when the target no longer exists.
     @MainActor
     init?(game: PlayViewModel, target: CorrectionTarget, choice: PlayCorrectionChoice?, evidence: CGImage?, reticle: CGSize) {
@@ -214,8 +251,13 @@ struct PlayCorrectionActions {
     var close: () -> Void = {}
     var pick: (Hit) -> Void = { _ in }
     var tapBoard: (BoardTap) -> Void = { _ in }
+    /// The reticle is being dragged: translation of this drag, in points.
     var moveReticle: (CGSize) -> Void = { _ in }
-    var dropReticle: (CGSize) -> Void = { _ in }
+    /// The reticle was released: translation of this drag, and the side of the drawn evidence image, in points.
+    var dropReticle: (CGSize, CGFloat) -> Void = { _, _ in }
+    /// A tap on the evidence image ("Touchez l'image pour déplacer la pointe"): the reticle goes to `offset` from
+    /// the detected tip, in points of an image drawn with the given side.
+    var placeReticle: (CGSize, CGFloat) -> Void = { _, _ in }
     var miss: () -> Void = {}
     var remove: () -> Void = {}
     var confirm: () -> Void = {}
@@ -226,15 +268,55 @@ struct PlayCorrectionContent: View {
     let model: PlayCorrectionModel
     var actions = PlayCorrectionActions()
 
-    /// Side, in points, of the square in which the evidence image is drawn.
-    static let evidenceSide: CGFloat = 350
+    /// Side, in points, of the square in which the evidence image is drawn, in a magnifier frame of `size`: the
+    /// image fills the width of the frame (its top and bottom are cut). Moves of the reticle are converted with
+    /// this same side (`PlayCorrectionModel.movedTip`).
+    static func evidenceDrawnSide(in size: CGSize) -> CGFloat {
+        max(size.width, size.height)
+    }
+
+    /// The sheet scrolls everything above "Valider", which stays pinned at the bottom: the whole sheet is about
+    /// 690 pt tall, an iPhone in landscape gives it about 370. SnapshotTool cannot render a scroll view (§8.11).
+    var scrolls = false
 
     @Environment(\.appLanguage) private var language
     @Environment(\.horizontalSizeClass) private var sizeClass
 
+    /// Height of the magnifier: 280 pt, 150 pt in a sheet lower than 500 pt (an iPhone in landscape).
+    static func magnifierHeight(sheetHeight: CGFloat) -> CGFloat {
+        sheetHeight < 500 ? 150 : 280
+    }
+
     var body: some View {
+        GeometryReader { proxy in
+            sheet(magnifierHeight: Self.magnifierHeight(sheetHeight: proxy.size.height))
+        }
+    }
+
+    private func sheet(magnifierHeight: CGFloat) -> some View {
         let metrics = Theme.Metrics(sizeClass)
-        VStack(alignment: .leading, spacing: 14) {
+        return VStack(spacing: 0) {
+            if scrolls {
+                ScrollView { editor(magnifierHeight: magnifierHeight) }
+                    .scrollIndicators(.hidden)
+                    .scrollBounceBehavior(.basedOnSize)
+            } else {
+                editor(magnifierHeight: magnifierHeight)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            }
+            PrimaryButton(L10n.text("correction.confirm \(model.selected.notation)", .game), action: actions.confirm)
+                .padding(.horizontal, metrics.screenMargin)
+                .padding(.top, 14)
+                .padding(.bottom, Theme.Spacing.section)
+        }
+        .frame(maxWidth: sizeClass == .regular ? 560 : .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Everything above "Valider".
+    private func editor(magnifierHeight: CGFloat) -> some View {
+        let metrics = Theme.Metrics(sizeClass)
+        return VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: Theme.Spacing.inline) {
                 Button(action: actions.close) {
                     Image(systemName: "xmark")
@@ -268,7 +350,7 @@ struct PlayCorrectionContent: View {
                     .font(PlayCorrectionFonts.status)
                     .foregroundStyle(Theme.Palette.textSecondary)
             }
-            magnifier
+            magnifier(height: magnifierHeight)
             L10n.text(model.evidence == nil ? "correction.hint.board" : "correction.hint.image", .game)
                 .font(Theme.Typography.secondary)
                 .foregroundStyle(Theme.Palette.textSecondary)
@@ -282,13 +364,9 @@ struct PlayCorrectionContent: View {
                 secondary(L10n.text("correction.miss", .game), action: actions.miss)
                 secondary(L10n.text("correction.remove", .game), action: actions.remove)
             }
-            Spacer(minLength: 0)
-            PrimaryButton(L10n.text("correction.confirm \(model.selected.notation)", .game), action: actions.confirm)
         }
         .padding(.horizontal, metrics.screenMargin)
-        .padding(.vertical, Theme.Spacing.section)
-        .frame(maxWidth: sizeClass == .regular ? 560 : .infinity, maxHeight: .infinity, alignment: .top)
-        .frame(maxWidth: .infinity)
+        .padding(.top, Theme.Spacing.section)
     }
 
     private var titleKey: LocalizedStringKey {
@@ -301,37 +379,48 @@ struct PlayCorrectionContent: View {
 
     /// The evidence image with its reticle, or a magnified virtual board centred on the dart: a tap gives the
     /// hit and the position together (§8.6).
-    private var magnifier: some View {
+    private func magnifier(height: CGFloat) -> some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
         return GeometryReader { proxy in
             let size = proxy.size
             ZStack(alignment: .topLeading) {
                 Theme.Palette.boardSurround
                 if let evidence = model.evidence {
-                    let side = max(size.width, size.height)
+                    let side = Self.evidenceDrawnSide(in: size)
                     Image(decorative: evidence, scale: 1)
                         .resizable()
                         .interpolation(.medium)
                         .frame(width: side, height: side)
                         .position(x: size.width / 2, y: size.height / 2)
+                        // Wider than the frame: it must not take the taps of the header above it.
+                        .allowsHitTesting(false)
+                    // A tap anywhere in the frame puts the reticle there, as the hint under the image says.
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(SpatialTapGesture(coordinateSpace: .local).onEnded { value in
+                            actions.placeReticle(CGSize(width: value.location.x - size.width / 2,
+                                                        height: value.location.y - size.height / 2), side)
+                        })
                     PlayCorrectionReticle()
                         .position(x: size.width / 2 + model.reticle.width, y: size.height / 2 + model.reticle.height)
                         .gesture(DragGesture(minimumDistance: 1)
                             .onChanged { actions.moveReticle($0.translation) }
-                            .onEnded { actions.dropReticle($0.translation) })
+                            .onEnded { actions.dropReticle($0.translation, side) })
                 } else {
                     magnifiedBoard(in: size)
                 }
             }
             .frame(width: size.width, height: size.height)
         }
-        .frame(height: 280)
+        .frame(height: height)
         .clipShape(shape)
         .overlay { shape.strokeBorder(Theme.Palette.line, lineWidth: Theme.Control.border) }
     }
 
     /// The board drawn 900 pt wide (2 pt per millimetre), the detected dart in the middle of the frame; the
-    /// marker and the reticle follow the point the player touched.
+    /// marker and the reticle follow the point the player touched. Only the frame takes taps: the board itself,
+    /// far larger than the frame, is not hit-testable (a clip does not limit hit testing, and the board would take
+    /// the taps meant for the header above it).
     private func magnifiedBoard(in size: CGSize) -> some View {
         let boardSide: CGFloat = 900
         let board = CGSize(width: boardSide, height: boardSide)
@@ -341,16 +430,24 @@ struct PlayCorrectionContent: View {
         let chosenLocation = DartboardView.location(of: chosen, in: board, geometry: model.boardGeometry)
         let marker = BoardDartMarker(id: model.dartID ?? PlayCorrectionModel.placeholderID, position: chosen, label: nil,
                                      style: model.needsReview || model.isPending ? .review : .neutral)
+        let geometry = model.boardGeometry
+        let tapBoard = actions.tapBoard
         return ZStack {
-            DartboardView(highlights: [], darts: [marker], geometry: model.boardGeometry, dimsUnhighlighted: false,
-                          showsNumbers: false, onTap: actions.tapBoard)
+            DartboardView(highlights: [], darts: [marker], geometry: geometry, dimsUnhighlighted: false,
+                          showsNumbers: false)
                 .frame(width: boardSide, height: boardSide)
                 .position(x: size.width / 2 + boardSide / 2 - location.x, y: size.height / 2 + boardSide / 2 - location.y)
+                .allowsHitTesting(false)
             PlayCorrectionReticle()
                 .position(x: size.width / 2 + chosenLocation.x - location.x, y: size.height / 2 + chosenLocation.y - location.y)
                 .allowsHitTesting(false)
         }
         .frame(width: size.width, height: size.height)
+        .contentShape(Rectangle())
+        .gesture(SpatialTapGesture(coordinateSpace: .local).onEnded { value in
+            tapBoard(PlayCorrectionModel.boardTap(at: value.location, frame: size, tipLocation: location,
+                                                  boardSide: boardSide, geometry: geometry))
+        })
     }
 
     private func choiceButton(_ hit: Hit) -> some View {

@@ -192,6 +192,9 @@ public struct ConfidenceModel: Sendable {
         if flags.contains(.warmUp) { confidence = min(confidence, parameters.warmUpCap) }
         if flags.contains(.crossViewpoint) { confidence = min(confidence, parameters.crossViewpointCap) }
         if context.cap.isFinite { confidence = min(confidence, max(0, context.cap)) }
+        // A tip that is not a point of the board plane was not read: its posterior is all MISS (`hit(at:)` is total),
+        // which must not reach the game as a certain miss (review RV2).
+        if !(candidate.tip.x.isFinite && candidate.tip.y.isFinite) { confidence = 0 }
         if !confidence.isFinite { confidence = 0 }
         return DartObservation(id: id, visit: visit, indexInVisit: indexInVisit, timestamp: timestamp, tip: candidate.tip,
                                uncertainty: uncertainty, candidates: candidates, nearbyHits: nearbyHits(around: candidate.tip),
